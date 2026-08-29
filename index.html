@@ -147,6 +147,22 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 }
 .search-wrap input::placeholder { color: var(--muted); }
 
+.sort-wrap { position: relative; }
+.sort-popover {
+  display: none; flex-direction: column; position: absolute; top: 44px; left: 0; width: 190px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 6px; z-index: 40;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+}
+.sort-popover button {
+  display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--text); font-size: 12.5px;
+  padding: 8px 9px; border-radius: 6px; cursor: pointer; text-align: left; width: 100%; font-family: 'Inter', sans-serif;
+}
+.sort-popover button:hover { background: var(--surface); }
+.sort-popover button.active { color: var(--accent); }
+.sort-popover svg { width: 14px; height: 14px; color: var(--muted); flex-shrink: 0; }
+.sort-popover button.active svg { color: var(--accent); }
+.sort-popover hr { border: none; border-top: 1px solid var(--border); margin: 4px 2px; }
+
 .upload-btn {
   display: flex; align-items: center; gap: 8px; background: var(--accent); color: #10131C; border: none;
   padding: 9px 16px; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
@@ -196,15 +212,27 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 .now-playing-overlay {
   display: none; position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 68%, transparent);
   backdrop-filter: blur(20px); flex-direction: column; align-items: center; justify-content: center; gap: 22px; z-index: 200;
+  opacity: 0; transition: opacity 0.22s ease;
 }
+.now-playing-overlay.open { opacity: 1; }
 .overlay-close { position: absolute; top: 26px; right: 30px; color: var(--muted); background: var(--surface); padding: 8px; border-radius: 50%; }
 .overlay-close svg { width: 18px; height: 18px; }
 .overlay-art {
   width: 280px; height: 280px; border-radius: 18px; overflow: hidden; background: var(--surface2); display: flex;
   align-items: center; justify-content: center; box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+  transform: scale(0.85); opacity: 0;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
 }
+.now-playing-overlay.open .overlay-art { transform: scale(1); opacity: 1; }
 .overlay-art img { width: 100%; height: 100%; object-fit: cover; }
 .overlay-art svg { width: 60px; height: 60px; color: var(--muted); }
+.overlay-title, .overlay-subtitle, .overlay-controls {
+  transform: translateY(10px); opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+.now-playing-overlay.open .overlay-title { transform: translateY(0); opacity: 1; transition-delay: 0.04s; }
+.now-playing-overlay.open .overlay-subtitle { transform: translateY(0); opacity: 1; transition-delay: 0.07s; }
+.now-playing-overlay.open .overlay-controls { transform: translateY(0); opacity: 1; transition-delay: 0.1s; }
 .overlay-title { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 28px; text-align: center; padding: 0 60px; max-width: 640px; }
 .overlay-subtitle { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); letter-spacing: 0.5px; }
 .overlay-controls { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 4px; }
@@ -255,9 +283,15 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 .progress-row { display: flex; align-items: center; gap: 8px; width: 100%; }
 .time-label { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); width: 34px; text-align: center; flex-shrink: 0; }
 input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
-.seek { flex: 1; height: 3px; border-radius: 2px; background: var(--surface2); outline: none; }
-.seek::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: var(--surface2); }
-.seek::-moz-range-track { height: 3px; border-radius: 2px; background: var(--surface2); }
+.seek { --progress: 0%; flex: 1; height: 3px; border-radius: 2px; background: var(--surface2); outline: none; }
+.seek::-webkit-slider-runnable-track {
+  height: 3px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--progress), var(--surface2) var(--progress));
+}
+.seek::-moz-range-track {
+  height: 3px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--progress), var(--surface2) var(--progress));
+}
 .seek::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); cursor: pointer; margin-top: -4px; }
 .seek::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; }
 
@@ -279,7 +313,7 @@ input[type="range"] { -webkit-appearance: none; appearance: none; background: tr
 }
 .queue-panel-title {
   font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 1.5px; color: var(--muted);
-  text-transform: uppercase; padding: 6px 8px 8px 8px;
+  text-transform: uppercase; padding: 6px 4px 8px 8px; display: flex; align-items: center; justify-content: space-between;
 }
 .queue-list { overflow-y: auto; max-height: 300px; display: flex; flex-direction: column; gap: 2px; }
 .queue-row {
@@ -291,6 +325,14 @@ input[type="range"] { -webkit-appearance: none; appearance: none; background: tr
 .queue-row.drag-over-bottom { box-shadow: inset 0 -2px 0 0 var(--accent); }
 .queue-grip { width: 13px; height: 13px; color: var(--muted); flex-shrink: 0; cursor: grab; }
 .queue-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+
+/* Drag-and-drop robustness: ignore child elements as drag targets while dragging */
+body.dnd-playlists .nav-item * { pointer-events: none; }
+body.dnd-tracks .track-row * { pointer-events: none; }
+body.dnd-queue .queue-row * { pointer-events: none; }
+.nav-item, .track-row, .queue-row {
+  -webkit-user-select: none; -moz-user-select: none; user-select: none;
+}
 </style>
 </head>
 <body>
@@ -347,6 +389,15 @@ input[type="range"] { -webkit-appearance: none; appearance: none; background: tr
           </div>
         </div>
         <div class="header-right">
+          <div class="sort-wrap">
+            <button class="icon-btn" id="btn-sort" title="Ordenar canciones"><i data-lucide="arrow-up-down"></i></button>
+            <div class="sort-popover" id="sort-popover">
+              <button id="sort-by-name"><i data-lucide="text"></i> Nombre</button>
+              <button id="sort-by-artist"><i data-lucide="user"></i> Artista</button>
+              <hr />
+              <button id="sort-toggle-dir"><i data-lucide="arrow-up"></i> <span id="sort-dir-label">Ascendente</span></button>
+            </div>
+          </div>
           <div class="search-wrap">
             <i data-lucide="search"></i>
             <input type="text" id="search-input" placeholder="Buscar canciones..." />
@@ -389,7 +440,10 @@ input[type="range"] { -webkit-appearance: none; appearance: none; background: tr
     <div class="right-controls">
       <button class="icon-btn" id="btn-queue" title="Cola de reproducción"><i data-lucide="list-music"></i></button>
       <div class="queue-panel" id="queue-panel">
-        <div class="queue-panel-title">Cola de reproducción</div>
+        <div class="queue-panel-title">
+          <span>Cola de reproducción</span>
+          <button class="icon-btn" id="btn-clear-queue" title="Vaciar cola"><i data-lucide="trash-2"></i></button>
+        </div>
         <div class="queue-list" id="queue-list"></div>
       </div>
 
@@ -451,6 +505,9 @@ let repeatMode = "off"; // off | all | one
 let volume = 0.8;
 let muted = false;
 let searchQuery = "";
+let sortBy = "default"; // default | name | artist
+let sortDir = "asc";    // asc | desc
+let sortMenuOpen = false;
 let customSeed = null;
 let settingsOpen = false;
 let queueOpen = false;
@@ -476,6 +533,11 @@ function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return m + ":" + s.toString().padStart(2, "0");
+}
+function updateSeekFill(elId, current, duration) {
+  const pct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+  const el = document.getElementById(elId);
+  if (el) el.style.setProperty("--progress", pct + "%");
 }
 function shuffleArray(arr) {
   const a = arr.slice();
@@ -712,8 +774,9 @@ function renderSidebar() {
     btn.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); openContextMenu(p.id, e.clientX, e.clientY); };
 
     btn.draggable = true;
-    btn.ondragstart = (e) => { dragPlaylistFromIndex = playlists.indexOf(p); btn.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; };
-    btn.ondragend = () => { btn.classList.remove("dragging"); clearDragOverClasses(); };
+    btn.ondragstart = (e) => { dragPlaylistFromIndex = playlists.indexOf(p); btn.classList.add("dragging"); document.body.classList.add("dnd-playlists"); e.dataTransfer.effectAllowed = "move"; };
+    btn.ondragend = () => { btn.classList.remove("dragging"); document.body.classList.remove("dnd-playlists"); clearDragOverClasses(); };
+    btn.ondragenter = (e) => e.preventDefault();
     btn.ondragover = (e) => {
       e.preventDefault();
       if (dragPlaylistFromIndex === null) return;
@@ -770,6 +833,15 @@ function renderMain() {
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     visible = visible.filter(t => (t.name + " " + (t.artist || "") + " " + (t.album || "")).toLowerCase().includes(q));
+  }
+  if (sortBy !== "default") {
+    visible = visible.slice().sort((a, b) => {
+      const av = (sortBy === "name" ? a.name : (a.artist || "")).toLowerCase();
+      const bv = (sortBy === "name" ? b.name : (b.artist || "")).toLowerCase();
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
   }
 
   const trackList = document.getElementById("track-list");
@@ -830,10 +902,11 @@ function renderMain() {
     row.appendChild(nameCell);
     row.appendChild(durCell);
 
-    if (!isLibrary && !searchQuery) {
+    if (!isLibrary && !searchQuery && sortBy === "default") {
       row.draggable = true;
-      row.ondragstart = (e) => { dragTrackFromIndex = index; row.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; };
-      row.ondragend = () => { row.classList.remove("dragging"); clearDragOverClasses(); };
+      row.ondragstart = (e) => { dragTrackFromIndex = index; row.classList.add("dragging"); document.body.classList.add("dnd-tracks"); e.dataTransfer.effectAllowed = "move"; };
+      row.ondragend = () => { row.classList.remove("dragging"); document.body.classList.remove("dnd-tracks"); clearDragOverClasses(); };
+      row.ondragenter = (e) => e.preventDefault();
       row.ondragover = (e) => {
         e.preventDefault();
         if (dragTrackFromIndex === null) return;
@@ -889,7 +962,7 @@ function renderPlayer() {
   document.getElementById("time-current").textContent = formatTime(audio.currentTime || 0);
   document.getElementById("time-duration").textContent = formatTime(audio.duration || 0);
   const seek = document.getElementById("seek");
-  if (document.activeElement !== seek) { seek.max = audio.duration || 0; seek.value = audio.currentTime || 0; }
+  if (document.activeElement !== seek) { seek.max = audio.duration || 0; seek.value = audio.currentTime || 0; updateSeekFill("seek", audio.currentTime || 0, audio.duration || 0); }
 
   document.title = current ? (current.name + " • Chowfy") : "Chowfy";
 
@@ -945,8 +1018,9 @@ function renderQueuePanel() {
     row.onclick = () => playFromQueue(id);
 
     row.draggable = true;
-    row.ondragstart = (e) => { dragQueueFromIndex = index; row.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; };
-    row.ondragend = () => { row.classList.remove("dragging"); clearDragOverClasses(); };
+    row.ondragstart = (e) => { dragQueueFromIndex = index; row.classList.add("dragging"); document.body.classList.add("dnd-queue"); e.dataTransfer.effectAllowed = "move"; };
+    row.ondragend = () => { row.classList.remove("dragging"); document.body.classList.remove("dnd-queue"); clearDragOverClasses(); };
+    row.ondragenter = (e) => e.preventDefault();
     row.ondragover = (e) => {
       e.preventDefault();
       if (dragQueueFromIndex === null) return;
@@ -975,6 +1049,14 @@ function playFromQueue(id) {
   if (idx === -1) return;
   queue.splice(0, idx + 1);
   playTrack(id);
+}
+function addToQueue(id) {
+  queue.push(id);
+  render();
+}
+function clearQueue() {
+  queue = [];
+  render();
 }
 
 // ---------- Playback logic ----------
@@ -1134,6 +1216,11 @@ function renderTrackMenu() {
     playBtn.onclick = () => { closeTrackMenu(); playFromCurrentView(track.id); };
     menu.appendChild(playBtn);
 
+    const queueBtn = document.createElement("button");
+    queueBtn.innerHTML = '<i data-lucide="list-end"></i> Añadir a la cola de reproducción';
+    queueBtn.onclick = () => { closeTrackMenu(); addToQueue(track.id); };
+    menu.appendChild(queueBtn);
+
     const addBtn = document.createElement("button");
     addBtn.innerHTML = '<i data-lucide="list-plus"></i> Añadir a una playlist';
     addBtn.onclick = (e) => { e.stopPropagation(); trackMenuMode = "add"; renderTrackMenu(); };
@@ -1174,8 +1261,21 @@ function renderTrackMenu() {
 document.getElementById("track-context-menu").onclick = (e) => e.stopPropagation();
 
 // ---------- Now playing overlay ----------
-function openNowPlaying() { nowPlayingOverlayOpen = true; document.getElementById("now-playing-overlay").style.display = "flex"; syncOverlay(); }
-function closeNowPlaying() { nowPlayingOverlayOpen = false; document.getElementById("now-playing-overlay").style.display = "none"; }
+function openNowPlaying() {
+  nowPlayingOverlayOpen = true;
+  const overlay = document.getElementById("now-playing-overlay");
+  overlay.style.display = "flex";
+  overlay.classList.remove("open");
+  void overlay.offsetWidth; // force reflow so the closed state is applied before animating in
+  requestAnimationFrame(() => { overlay.classList.add("open"); });
+  syncOverlay();
+}
+function closeNowPlaying() {
+  nowPlayingOverlayOpen = false;
+  const overlay = document.getElementById("now-playing-overlay");
+  overlay.classList.remove("open");
+  setTimeout(() => { if (!nowPlayingOverlayOpen) overlay.style.display = "none"; }, 220);
+}
 function syncOverlay() {
   const t = getCurrentTrack();
   if (!t) { closeNowPlaying(); return; }
@@ -1197,7 +1297,7 @@ function syncOverlay() {
   document.getElementById("ov-time-current").textContent = formatTime(audio.currentTime || 0);
   document.getElementById("ov-time-duration").textContent = formatTime(audio.duration || 0);
   const ovSeek = document.getElementById("ov-seek");
-  if (document.activeElement !== ovSeek) { ovSeek.max = audio.duration || 0; ovSeek.value = audio.currentTime || 0; }
+  if (document.activeElement !== ovSeek) { ovSeek.max = audio.duration || 0; ovSeek.value = audio.currentTime || 0; updateSeekFill("ov-seek", audio.currentTime || 0, audio.duration || 0); }
 
   lucide.createIcons();
 }
@@ -1214,7 +1314,11 @@ document.getElementById("ov-btn-repeat").onclick = () => {
   savePrefs();
   render();
 };
-document.getElementById("ov-seek").addEventListener("input", (e) => { audio.currentTime = parseFloat(e.target.value); });
+document.getElementById("ov-seek").addEventListener("input", (e) => {
+  const v = parseFloat(e.target.value);
+  audio.currentTime = v;
+  updateSeekFill("ov-seek", v, audio.duration || 0);
+});
 
 // ---------- MediaSession ----------
 function updateMediaSession() {
@@ -1247,16 +1351,18 @@ function setupMediaSession() {
 audio.addEventListener("timeupdate", () => {
   document.getElementById("time-current").textContent = formatTime(audio.currentTime);
   const seek = document.getElementById("seek");
-  if (document.activeElement !== seek) seek.value = audio.currentTime;
+  if (document.activeElement !== seek) { seek.value = audio.currentTime; updateSeekFill("seek", audio.currentTime, audio.duration || 0); }
   if (nowPlayingOverlayOpen) {
     document.getElementById("ov-time-current").textContent = formatTime(audio.currentTime);
     const ovSeek = document.getElementById("ov-seek");
-    if (document.activeElement !== ovSeek) ovSeek.value = audio.currentTime;
+    if (document.activeElement !== ovSeek) { ovSeek.value = audio.currentTime; updateSeekFill("ov-seek", audio.currentTime, audio.duration || 0); }
   }
 });
 audio.addEventListener("loadedmetadata", async () => {
   document.getElementById("seek").max = audio.duration || 0;
   document.getElementById("time-duration").textContent = formatTime(audio.duration);
+  updateSeekFill("seek", audio.currentTime, audio.duration || 0);
+  updateSeekFill("ov-seek", audio.currentTime, audio.duration || 0);
   const t = getCurrentTrack();
   if (t) {
     t.duration = audio.duration;
@@ -1300,6 +1406,29 @@ document.getElementById("file-input").onchange = (e) => handleFiles(e.target.fil
 
 document.getElementById("search-input").addEventListener("input", (e) => { searchQuery = e.target.value; renderMain(); lucide.createIcons(); });
 
+// ---------- Sort popover ----------
+function renderSortMenu() {
+  const nameBtn = document.getElementById("sort-by-name");
+  const artistBtn = document.getElementById("sort-by-artist");
+  nameBtn.classList.toggle("active", sortBy === "name");
+  artistBtn.classList.toggle("active", sortBy === "artist");
+  const dirBtn = document.getElementById("sort-toggle-dir");
+  dirBtn.innerHTML = sortDir === "asc"
+    ? '<i data-lucide="arrow-up"></i> <span id="sort-dir-label">Ascendente</span>'
+    : '<i data-lucide="arrow-down"></i> <span id="sort-dir-label">Descendente</span>';
+  lucide.createIcons();
+}
+document.getElementById("btn-sort").onclick = (e) => {
+  e.stopPropagation();
+  sortMenuOpen = !sortMenuOpen;
+  document.getElementById("sort-popover").style.display = sortMenuOpen ? "flex" : "none";
+  if (sortMenuOpen) renderSortMenu();
+};
+document.getElementById("sort-popover").onclick = (e) => e.stopPropagation();
+document.getElementById("sort-by-name").onclick = () => { sortBy = "name"; renderSortMenu(); renderMain(); lucide.createIcons(); };
+document.getElementById("sort-by-artist").onclick = () => { sortBy = "artist"; renderSortMenu(); renderMain(); lucide.createIcons(); };
+document.getElementById("sort-toggle-dir").onclick = () => { sortDir = sortDir === "asc" ? "desc" : "asc"; renderSortMenu(); renderMain(); lucide.createIcons(); };
+
 document.getElementById("btn-rename-playlist").onclick = () => startRenamePlaylist(view.id);
 document.getElementById("rename-title-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") commitRenamePlaylist(editingPlaylistId, e.target.value);
@@ -1322,7 +1451,11 @@ document.getElementById("btn-repeat").onclick = () => {
   savePrefs();
   render();
 };
-document.getElementById("seek").addEventListener("input", (e) => { audio.currentTime = parseFloat(e.target.value); });
+document.getElementById("seek").addEventListener("input", (e) => {
+  const v = parseFloat(e.target.value);
+  audio.currentTime = v;
+  updateSeekFill("seek", v, audio.duration || 0);
+});
 
 function updateVolPercent() { document.getElementById("vol-percent").textContent = Math.round((muted ? 0 : volume) * 100) + "%"; }
 document.getElementById("btn-mute").onclick = () => {
@@ -1351,6 +1484,7 @@ document.getElementById("btn-queue").onclick = (e) => {
   if (queueOpen) renderQueuePanel();
 };
 document.getElementById("queue-panel").onclick = (e) => e.stopPropagation();
+document.getElementById("btn-clear-queue").onclick = (e) => { e.stopPropagation(); clearQueue(); };
 
 // ---------- Settings popover ----------
 document.getElementById("btn-settings").onclick = (e) => {
@@ -1392,6 +1526,7 @@ document.addEventListener("click", () => {
   closeTrackMenu();
   if (settingsOpen) { settingsOpen = false; document.getElementById("settings-popover").style.display = "none"; }
   if (queueOpen) { queueOpen = false; document.getElementById("queue-panel").style.display = "none"; }
+  if (sortMenuOpen) { sortMenuOpen = false; document.getElementById("sort-popover").style.display = "none"; }
 });
 
 document.addEventListener("keydown", (e) => {
