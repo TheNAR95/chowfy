@@ -438,6 +438,7 @@ body.dnd-queue .queue-row * { pointer-events: none; }
     </div>
 
     <div class="right-controls">
+      <button class="icon-btn" id="btn-shuffle-play" title="Reproducir esta playlist al azar"><i data-lucide="shuffle"></i></button>
       <button class="icon-btn" id="btn-queue" title="Cola de reproducción"><i data-lucide="list-music"></i></button>
       <div class="queue-panel" id="queue-panel">
         <div class="queue-panel-title">
@@ -1077,6 +1078,14 @@ function playFromCurrentView(trackId) {
   startQueueFrom(trackId);
 }
 
+function shufflePlayView() {
+  const visible = getVisibleTracks();
+  if (visible.length === 0) return;
+  isShuffle = true;
+  const randomTrack = visible[Math.floor(Math.random() * visible.length)];
+  playFromCurrentView(randomTrack.id);
+}
+
 function prevTrack() {
   const ctxTracks = getPlayingTracks();
   const idx = ctxTracks.findIndex(t => t.id === currentTrackId);
@@ -1489,6 +1498,7 @@ document.getElementById("vol-seek").addEventListener("input", (e) => {
 });
 
 // ---------- Queue panel toggle ----------
+document.getElementById("btn-shuffle-play").onclick = () => shufflePlayView();
 document.getElementById("btn-queue").onclick = (e) => {
   e.stopPropagation();
   queueOpen = !queueOpen;
