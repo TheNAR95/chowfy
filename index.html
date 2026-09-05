@@ -498,6 +498,8 @@ let playlists = [];    // {id, name, trackIds:[], cover, order}
 let view = { type: "library" };
 let playingContext = null; // {type:'library'} | {type:'playlist', id} — the LOCKED source of what's currently playing
 let queue = [];         // array of track ids: what plays next
+let manualQueueAdditions = []; // ids manually added via "Añadir a la cola" — survive repeat-loop rebuilds
+let baseOrder = [];     // fixed natural (or shuffled) order of the current playingContext's tracks
 let currentTrackId = null;
 let isPlaying = false;
 let isShuffle = false;
@@ -876,11 +878,9 @@ function renderMain() {
     const artCell = document.createElement("div");
     artCell.className = "track-art";
     artCell.innerHTML = artHtml(track);
-    artCell.onclick = (e) => { e.stopPropagation(); playFromCurrentView(track.id); openNowPlaying(); };
 
     const nameCell = document.createElement("div");
     nameCell.className = "track-name-stack";
-    nameCell.onclick = (e) => { e.stopPropagation(); playFromCurrentView(track.id); openNowPlaying(); };
     const nameLine = document.createElement("div");
     nameLine.className = "track-name";
     nameLine.textContent = track.name;
@@ -972,14 +972,22 @@ function renderPlayer() {
 }
 
 // ---------- Queue ----------
-function rebuildQueueFromContext(loop) {
-  const ctxTracks = getPlayingTracks();
-  const idx = ctxTracks.findIndex(t => t.id === currentTrackId);
-  let remaining;
-  if (loop || idx < 0) remaining = ctxTracks.filter(t => t.id !== currentTrackId);
-  else remaining = ctxTracks.slice(idx + 1);
-  if (isShuffle) remaining = shuffleArray(remaining);
-  queue = remaining.map(t => t.id);
+function rebuildBaseOrder() {
+  let ctxTracks = getPlayingTracks();
+  if (isShuffle) ctxTracks = shuffleArray(ctxTracks);
+  baseOrder = ctxTracks.map(t => t.id);
+}
+function startQueueFrom(trackId) {
+  rebuildBaseOrder();
+  const idx = baseOrder.indexOf(trackId);
+  const remainingBase = idx >= 0 ? baseOrder.slice(idx + 1) : baseOrder.slice();
+  queue = remainingBase.concat(manualQueueAdditions.filter(id => id !== trackId));
+}
+// Once the current pass (base + memory) finishes, repeat should loop ONLY the
+// manually-added "memory" from then on — the base playlist does not play again.
+// If nothing was ever added to memory, fall back to looping the base as usual.
+function refillQueueForRepeat() {
+  queue = manualQueueAdditions.length > 0 ? manualQueueAdditions.slice() : baseOrder.slice();
 }
 
 function renderQueuePanel() {
@@ -1049,13 +1057,16 @@ function playFromQueue(id) {
   if (idx === -1) return;
   queue.splice(0, idx + 1);
   playTrack(id);
+  if (queue.length === 0 && repeatMode === "all") refillQueueForRepeat();
 }
 function addToQueue(id) {
+  manualQueueAdditions.push(id);
   queue.push(id);
   render();
 }
 function clearQueue() {
   queue = [];
+  manualQueueAdditions = [];
   render();
 }
 
@@ -1063,32 +1074,25 @@ function clearQueue() {
 function playFromCurrentView(trackId) {
   playingContext = { type: view.type, id: view.id };
   playTrack(trackId);
-  rebuildQueueFromContext(false);
+  startQueueFrom(trackId);
 }
 
 function prevTrack() {
   const ctxTracks = getPlayingTracks();
   const idx = ctxTracks.findIndex(t => t.id === currentTrackId);
   if (idx <= 0) return;
-  playTrack(ctxTracks[idx - 1].id);
-  rebuildQueueFromContext(false);
+  const targetId = ctxTracks[idx - 1].id;
+  playTrack(targetId);
+  startQueueFrom(targetId);
 }
 
 function playNext() {
-  if (queue.length > 0) {
-    const id = queue.shift();
-    playTrack(id);
-    return true;
-  }
-  if (repeatMode === "all") {
-    rebuildQueueFromContext(true);
-    if (queue.length > 0) {
-      const id = queue.shift();
-      playTrack(id);
-      return true;
-    }
-  }
-  return false;
+  if (queue.length === 0 && repeatMode === "all") refillQueueForRepeat();
+  if (queue.length === 0) return false;
+  const id = queue.shift();
+  playTrack(id);
+  if (queue.length === 0 && repeatMode === "all") refillQueueForRepeat();
+  return true;
 }
 
 function playTrack(id) {
@@ -1305,7 +1309,11 @@ document.getElementById("btn-close-overlay").onclick = () => closeNowPlaying();
 document.getElementById("now-playing-overlay").onclick = (e) => { if (e.target.id === "now-playing-overlay") closeNowPlaying(); };
 document.getElementById("reel-holder-wrap").onclick = () => { if (getCurrentTrack()) openNowPlaying(); };
 
-document.getElementById("ov-btn-shuffle").onclick = () => { isShuffle = !isShuffle; rebuildQueueFromContext(false); render(); };
+document.getElementById("ov-btn-shuffle").onclick = () => {
+  isShuffle = !isShuffle;
+  if (currentTrackId) startQueueFrom(currentTrackId);
+  render();
+};
 document.getElementById("ov-btn-prev").onclick = () => prevTrack();
 document.getElementById("ov-btn-play").onclick = () => { if (currentTrackId) playTrack(currentTrackId); };
 document.getElementById("ov-btn-next").onclick = () => playNext();
@@ -1445,7 +1453,11 @@ document.getElementById("playlist-cover-btn").onclick = () => triggerCoverPicker
 document.getElementById("btn-play").onclick = () => { if (currentTrackId) playTrack(currentTrackId); };
 document.getElementById("btn-prev").onclick = () => prevTrack();
 document.getElementById("btn-next").onclick = () => playNext();
-document.getElementById("btn-shuffle").onclick = () => { isShuffle = !isShuffle; rebuildQueueFromContext(false); render(); };
+document.getElementById("btn-shuffle").onclick = () => {
+  isShuffle = !isShuffle;
+  if (currentTrackId) startQueueFrom(currentTrackId);
+  render();
+};
 document.getElementById("btn-repeat").onclick = () => {
   repeatMode = repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off";
   savePrefs();
@@ -1514,6 +1526,8 @@ document.getElementById("clear-library-btn").onclick = async () => {
   if (currentTrackId) { audio.pause(); audio.src = ""; currentTrackId = null; isPlaying = false; }
   playingContext = null;
   queue = [];
+  manualQueueAdditions = [];
+  baseOrder = [];
   settingsOpen = false;
   document.getElementById("settings-popover").style.display = "none";
   render();
