@@ -345,6 +345,10 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 #edit-cover { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; background: var(--surface); }
 .edit-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .edit-field .text-input { width: auto; }
+.ver-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.ver-chip { font-size: 11.5px; color: var(--muted); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); }
+.ver-chip.good { color: var(--accent); border-color: var(--accent); }
+.ver-cue { font-size: 11.5px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lyric-empty { color: var(--muted); font-size: 13px; padding: 30px 20px; }
 
 /* Player bar */
@@ -702,12 +706,24 @@ body.dnd-queue .queue-row * { pointer-events: none; }
           <button class="lyr-icon" id="btn-lyrics-import" title="Importar letra (.lrc / .txt)"><i data-lucide="plus"></i></button>
           <button class="lyr-icon" id="btn-lyrics-sync" title="Sincronización"><i data-lucide="timer"></i></button>
           <button class="lyr-icon" id="btn-lyrics-search" title="Buscar letra online"><i data-lucide="search"></i></button>
+          <button class="lyr-icon" id="btn-lyrics-versions" title="Elegir otra versión de la letra"><i data-lucide="layers"></i></button>
           <button class="lyr-icon" id="btn-lyrics-clear" title="Quitar letra"><i data-lucide="x"></i></button>
         </span>
       </div>
       <div id="lyrics-lines"></div>
     </div>
     </div>
+  </div>
+
+  <div class="settings-backdrop" id="ver-backdrop"></div>
+  <div class="settings-popover" id="ver-modal">
+    <div class="settings-head"><span>Versiones de la letra</span><button class="icon-btn" id="ver-close" title="Cerrar"><i data-lucide="x"></i></button></div>
+    <div class="yt-search">
+      <input type="text" class="text-input" id="ver-query" placeholder="Artista y título…" autocomplete="off" />
+      <button class="lyr-btn" id="ver-go">Buscar</button>
+    </div>
+    <div class="yt-status" id="ver-status"></div>
+    <div class="yt-results" id="ver-results"></div>
   </div>
 
   <div class="settings-backdrop" id="edit-backdrop"></div>
@@ -1956,8 +1972,8 @@ function parseLrc(text) {
 }
 function parsePlain(text) { return text.split(/\r?\n/).map(l => ({ t: null, text: l.trim() })); }
 function hasLrcStamps(text) { return /\[\d+:\d{1,2}(?:[.:]\d{1,3})?\]/.test(text); }
-async function saveLyrics(trackId, lines, source) {
-  await dbPut("lyrics", { trackId, synced: lines.some(l => l.t !== null), lines, source });
+async function saveLyrics(trackId, lines, source, extra) {
+  await dbPut("lyrics", Object.assign({ trackId, synced: lines.some(l => l.t !== null), lines, source }, extra || {}));
   if (trackId === currentTrackId) { lyricsData = await dbGet("lyrics", trackId); renderLyrics(); }
 }
 async function loadLyricsFor(id) {
@@ -2105,7 +2121,7 @@ function pickLyrics(arr, dur, strict) {
   return pool.find(x => x.syncedLyrics) || pool[0] || null;
 }
 function fromLrclib(b) {
-  return b ? { lines: b.syncedLyrics ? parseLrc(b.syncedLyrics) : parsePlain(b.plainLyrics), source: "LRCLIB" } : null;
+  return b ? { lines: b.syncedLyrics ? parseLrc(b.syncedLyrics) : parsePlain(b.plainLyrics), source: "LRCLIB", id: b.id } : null;
 }
 // Proveedores en orden de prioridad. Para añadir otro: { name, run: async (track, dur) => ({lines, source}) | null }
 const LYRIC_PROVIDERS = [
@@ -2143,7 +2159,7 @@ async function fetchLyricsOnline(auto) {
       if (!q) { renderLyrics(); return; }
       found = fromLrclib(pickLyrics(await fetchJson("https://lrclib.net/api/search?" + new URLSearchParams({ q })), dur, false));
     }
-    if (found && found.lines.length) await saveLyrics(t.id, found.lines, found.source);
+    if (found && found.lines.length) await saveLyrics(t.id, found.lines, found.source, found.id ? { lrclibId: found.id } : undefined);
     else { if (!auto) alert("No se encontró letra para esta canción."); renderLyrics(); }
   } catch (e) { if (!auto) alert("No se pudo consultar los proveedores de letras (¿sin conexión?)."); renderLyrics(); }
 }
@@ -2950,6 +2966,93 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeEditModal();
   else if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type === "text") saveEdit();
 });
+
+// ---------- Elegir otra versión de la letra ----------
+let verOpen = false, verFor = null;
+function fmtT(sec) { return durText(sec) || "0:00"; }
+function versionCue(c) {
+  if (c.syncedLyrics) {
+    const ln = parseLrc(c.syncedLyrics).find(l => l.text);
+    return ln ? "1.ª línea a " + fmtT(ln.t) + ": " + ln.text : "";
+  }
+  const ln = (c.plainLyrics || "").split(/\r?\n/).find(l => l.trim());
+  return ln ? "«" + ln.trim() + "»" : "";
+}
+function closeVersions() {
+  verOpen = false; verFor = null;
+  document.getElementById("ver-modal").style.display = "none";
+  document.getElementById("ver-backdrop").style.display = "none";
+}
+function openVersions() {
+  const t = getCurrentTrack();
+  if (!t) { showToastAbove(document.getElementById("btn-lyrics-versions"), "No hay ninguna canción sonando"); return; }
+  verFor = t.id; verOpen = true;
+  document.getElementById("ver-query").value = [firstArtist(t.artist), cleanTitle(t.name, t.artist)].filter(Boolean).join(" ");
+  document.getElementById("ver-modal").style.display = "flex";
+  document.getElementById("ver-backdrop").style.display = "block";
+  loadVersions(null);
+}
+async function loadVersions(custom) {
+  const t = tracks.find(x => x.id === verFor);
+  if (!t) return;
+  const st = document.getElementById("ver-status"), box = document.getElementById("ver-results");
+  box.innerHTML = ""; st.textContent = "Buscando…";
+  const dur = t.duration || (t.id === currentTrackId ? audio.duration : 0) || 0;
+  try {
+    const queries = custom ? [custom] : lyricQueries(t).slice(0, 4);
+    const seen = new Map();
+    for (const q of queries) {
+      const arr = (await fetchJson("https://lrclib.net/api/search?" + new URLSearchParams({ q }))) || [];
+      arr.forEach(x => { if ((x.syncedLyrics || x.plainLyrics) && !seen.has(x.id)) seen.set(x.id, x); });
+      if (seen.size >= 15) break;
+    }
+    const list = [...seen.values()].sort((a, b) =>
+      (!!b.syncedLyrics - !!a.syncedLyrics) || (dur ? Math.abs((a.duration || 0) - dur) - Math.abs((b.duration || 0) - dur) : 0)).slice(0, 30);
+    if (verFor !== t.id) return;
+    if (!list.length) { st.textContent = "No se encontraron versiones. Prueba con otra búsqueda."; return; }
+    st.textContent = list.length + " versiones" + (dur ? " · tu archivo dura " + fmtT(dur) : "");
+    renderVersions(list, t, dur);
+  } catch (e) { st.textContent = "No se pudo consultar LRCLIB (¿sin conexión?)."; }
+}
+function renderVersions(list, t, dur) {
+  const box = document.getElementById("ver-results");
+  box.innerHTML = "";
+  list.forEach(c => {
+    const row = document.createElement("div"); row.className = "yt-item";
+    const info = document.createElement("div"); info.className = "yt-info";
+    const ti = document.createElement("div"); ti.className = "yt-title"; ti.textContent = (c.artistName ? c.artistName + " — " : "") + (c.trackName || c.name || "");
+    const sub = document.createElement("div"); sub.className = "yt-chan"; sub.textContent = c.albumName || "Sin álbum";
+    const meta = document.createElement("div"); meta.className = "ver-meta";
+    const addChip = (txt, good) => { const sp = document.createElement("span"); sp.className = "ver-chip" + (good ? " good" : ""); sp.textContent = txt; meta.appendChild(sp); };
+    if (c.duration) {
+      const d = Math.round(c.duration - dur);
+      addChip(fmtT(c.duration) + (dur ? " (" + (d >= 0 ? "+" : "−") + Math.abs(d) + " s)" : ""), dur && Math.abs(d) <= 2);
+    }
+    addChip(c.syncedLyrics ? "Sincronizada" : "Simple", !!c.syncedLyrics);
+    if (lyricsData && lyricsData.trackId === t.id && lyricsData.lrclibId === c.id) addChip("En uso", true);
+    const cue = document.createElement("div"); cue.className = "ver-cue"; cue.textContent = versionCue(c); cue.title = cue.textContent;
+    info.append(ti, sub, meta, cue);
+    const act = document.createElement("div"); act.className = "yt-actions";
+    const pick = document.createElement("button"); pick.className = "lyr-icon"; pick.title = "Usar esta versión";
+    pick.innerHTML = '<i data-lucide="check"></i>';
+    pick.onclick = async () => {
+      const lines = c.syncedLyrics ? parseLrc(c.syncedLyrics) : parsePlain(c.plainLyrics);
+      await saveLyrics(t.id, lines, "LRCLIB", { lrclibId: c.id });
+      closeVersions();
+    };
+    act.appendChild(pick);
+    row.append(info, act);
+    box.appendChild(row);
+  });
+  lucide.createIcons();
+}
+document.getElementById("btn-lyrics-versions").onclick = openVersions;
+document.getElementById("ver-modal").onclick = (e) => e.stopPropagation();
+document.getElementById("ver-backdrop").onclick = closeVersions;
+document.getElementById("ver-close").onclick = closeVersions;
+document.getElementById("ver-go").onclick = () => { const q = document.getElementById("ver-query").value.trim(); if (q) loadVersions(q); };
+document.getElementById("ver-query").addEventListener("keydown", (e) => { if (e.key === "Enter") document.getElementById("ver-go").click(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && verOpen) closeVersions(); });
 
 // ---------- Exportar ----------
 function csvCell(v) { const t = String(v == null ? "" : v); return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
