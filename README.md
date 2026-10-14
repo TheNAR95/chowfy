@@ -3,12 +3,39 @@
 <img src="https://i.postimg.cc/QCt5D47J/image-removebg-preview-(27).png" alt="Logo de Chowfy">
 </p>
 
-## Local web music player
+## 🎵 Local web music player
 > **Note:** This page was created using Claude and may be unstable or contain errors, as it is not intended for public use. If you happen to stumble upon this repository, I’d just like to thank you for finding it.
+
+---
+
+## ✨ Main Features
+
+### 📁 Local File Import & Playback
+* **Local Music Support:** Allows you to **import your own local audio files** directly into the browser to play them natively within the application.
+
+### 🎵 Music & Playlist Management
+* **API-Powered Search:** Search songs and artists in real-time directly from the **YouTube Music catalog using its API**.
+* **Custom Library:** Create and sort your playlists in ascending order or by artist name.
+* **Editable Metadata:** Manually edit song titles, artist names, and album details, as well as customize or remove cover art for any track.
+
+### 🎛️ Advanced Playback
+* **Crossfade:** Smooth and configurable transitions between tracks (from 1 to 5 seconds).
+* **Volume Normalization:** Maintains a consistent audio level across all your music.
+* **Equalizer:** Adjustable audio setup featuring custom preset profiles.
+* **Sleep Timer:** Configurable automatic shutdown (5, 10, 15, 30, 60, 90 minutes, or right after the current song ends).
+
+### 🎨 Customization & Appearance
+* **Adaptive Theme:** The UI colors dynamically adapt to the artwork of the song currently playing.
+* **Aesthetic Tweaks:** Custom accent color picker, player background opacity controls, and font style adjustments.
+* **Lyrics Visualizer (SCRLIB):** Support for song lyrics powered by **SCRLIB** integration, featuring an optional blur effect on inactive lines to enhance focus.
+
+### 💾 Tools & Data
+* **Full Data Export:** Download your library or playlists in **CSV** (including comprehensive metadata) or **TXT** formats.
+* **Session Persistence:** Option to automatically remember the last opened playlist when you return.
 
 <p align="center">
   <a href="https://thenar95.github.io/chowfy/" target="_blank" rel="noopener noreferrer">
-    <strong>Ir a Chowfy</strong>
+    <strong>Chowfy</strong>
   </a>
 </p>
 
