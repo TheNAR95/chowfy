@@ -27,7 +27,7 @@
 ### 🎨 Customization & Appearance
 * **Adaptive Theme:** The UI colors dynamically adapt to the artwork of the song currently playing.
 * **Aesthetic Tweaks:** Custom accent color picker, player background opacity controls, and font style adjustments.
-* **Lyrics Visualizer (SCRLIB):** Support for song lyrics powered by **SCRLIB** integration, featuring an optional blur effect on inactive lines to enhance focus.
+* **Lyrics Visualizer (SCRLIB):** Automatically searches for song lyrics upon playback, powered by **SCRLIB** integration and featuring an optional blur effect on inactive lines to enhance focus.
 
 ### 💾 Tools & Data
 * **Full Data Export:** Download your library or playlists in **CSV** (including comprehensive metadata) or **TXT** formats.
