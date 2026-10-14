@@ -11,7 +11,7 @@
 ## ✨ Main Features
 
 ### 📁 Local File Import & Playback
-* **Local Music Support:** Allows you to **import your own local audio files** directly into the browser to play them natively within the application.
+* **Local Music Support:** Allows you to **import your own local audio files** directly into the browser to play them natively within the page.
 
 ### 🎵 Music & Playlist Management
 * **API-Powered Search:** Search songs and artists in real-time directly from the **YouTube Music catalog using its API**.
