@@ -1,3 +1,3 @@
 # chowfy
-This is a project created using AI, with no profit motive or intention to generate any kind of revenue. It is a personal project intended solely for the author's own use.
-For this project, I used logos that do not belong to me; I took them from the Musify app, which I really appreciate, and I apologize to the creator for using them without their consent.
+Local web music player.
+Note: This page was created using Claude and may be unstable or contain errors, as it is not intended for public use. If you happen to stumble upon this repository, I’d just like to thank you for finding it.
