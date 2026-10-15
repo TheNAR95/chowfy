@@ -1,6 +1,6 @@
 # Chowfy
 <p align="center">
-<img src="https://i.postimg.cc/QCt5D47J/image-removebg-preview-(27).png" alt="Logo de Chowfy">
+<img src="https://i.postimg.cc/d1trgMfr/image-removebg-preview-(29).png" alt="Logo de Chowfy">
 </p>
 
 ## 🎵 Local web music player
@@ -33,7 +33,7 @@
 * **Full Data Export:** Download your library or playlists in **CSV** (including comprehensive metadata) or **TXT** formats.
 * **Session Persistence:** Option to automatically remember the last opened playlist when you return.
 
-v1.4.2
+v1.4.3
 <p align="center">
   <a href="https://thenar95.github.io/chowfy/" target="_blank" rel="noopener noreferrer">
     <strong>Chowfy</strong>
