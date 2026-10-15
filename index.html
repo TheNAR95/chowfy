@@ -2058,6 +2058,7 @@ function renderLyrics() {
     if (d.synced) div.onclick = () => { audio.currentTime = l.t; };
     box.appendChild(div);
   });
+  box.scrollTop = 0;
   updateLyricsHighlight();
 }
 function updateLyricsHighlight(instant) {
