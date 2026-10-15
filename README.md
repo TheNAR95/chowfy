@@ -1,6 +1,6 @@
 # Chowfy
 <p align="center">
-<img src="https://i.postimg.cc/QCt5D47J/image-removebg-preview-(27).png" alt="Logo de Chowfy">
+<img src="https://i.postimg.cc/d1trgMfr/image-removebg-preview-(29).png" alt="Logo de Chowfy">
 </p>
 
 ## 🎵 Local web music player
