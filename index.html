@@ -1009,6 +1009,8 @@ function loadPrefs() {
     if (typeof p.volume === "number") volume = p.volume;
     if (typeof p.muted === "boolean") muted = p.muted;
     if (p.repeatMode) repeatMode = p.repeatMode;
+    if (typeof p.sortBy === "string") sortBy = p.sortBy;
+    if (p.sortDir === "asc" || p.sortDir === "desc") sortDir = p.sortDir;
     if (typeof p.lyricsOpen === "boolean") lyricsOpen = p.lyricsOpen;
     if (typeof p.lyricsAuto === "boolean") lyricsAuto = p.lyricsAuto;
     if (typeof p.lyricsPanel === "boolean") lyricsPanelOpen = p.lyricsPanel;
@@ -1025,7 +1027,7 @@ function loadPrefs() {
   } catch (e) {}
 }
 function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ customSeed, volume, muted, repeatMode, lyricsOpen, lyricsAuto, lyricsBlur, lyricsPanel: lyricsPanelOpen, rememberView, fadeEnabled, fadeSecs, adaptive: adaptiveEnabled, lyricsPanelW, normalize: normalizeEnabled, overlayOpacity, fontMode, fontName })); } catch (e) {}
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ customSeed, volume, muted, repeatMode, lyricsOpen, lyricsAuto, lyricsBlur, lyricsPanel: lyricsPanelOpen, rememberView, fadeEnabled, fadeSecs, adaptive: adaptiveEnabled, lyricsPanelW, normalize: normalizeEnabled, overlayOpacity, fontMode, fontName, sortBy, sortDir })); } catch (e) {}
 }
 
 // ---------- Material-You-style palette ----------
@@ -1237,7 +1239,7 @@ function renderMain() {
     const q = searchQuery.toLowerCase();
     visible = visible.filter(t => (t.name + " " + (t.artist || "") + " " + (t.album || "")).toLowerCase().includes(q));
   }
-  if (sortBy !== "default") {
+if (isLibrary && sortBy !== "default") {
     visible = visible.slice().sort((a, b) => {
       const av = (sortBy === "name" ? a.name : (a.artist || "")).toLowerCase();
       const bv = (sortBy === "name" ? b.name : (b.artist || "")).toLowerCase();
@@ -1303,7 +1305,7 @@ function renderMain() {
     row.appendChild(nameCell);
     row.appendChild(durCell);
 
-    if (!isLibrary && !searchQuery && sortBy === "default") {
+ if (!isLibrary && !searchQuery) {
       row.draggable = true;
       row.ondragstart = (e) => { dragTrackFromIndex = index; row.classList.add("dragging"); document.body.classList.add("dnd-tracks"); e.dataTransfer.effectAllowed = "move"; };
       row.ondragend = () => { row.classList.remove("dragging"); document.body.classList.remove("dnd-tracks"); clearDragOverClasses(); };
@@ -2291,13 +2293,29 @@ document.getElementById("file-input").onchange = (e) => { handleFiles(e.target.f
 document.getElementById("search-input").addEventListener("input", (e) => { searchQuery = e.target.value; renderMain(); lucide.createIcons(); });
 
 // ---------- Sort popover ----------
+let lastSortField = "name";
+let plSortDir = "asc";
+function sortKey(t, field) { return ((field === "name" ? t.name : t.artist) || "").toLowerCase(); }
+async function sortPlaylistPermanently(field, dir) {
+  const pl = getCurrentPlaylist();
+  if (!pl) return;
+  const byId = new Map(tracks.map(t => [t.id, t]));
+  pl.trackIds = pl.trackIds.map(id => byId.get(id)).filter(Boolean)
+    .sort((a, b) => sortKey(a, field).localeCompare(sortKey(b, field), "es", { sensitivity: "base" }) * (dir === "asc" ? 1 : -1))
+    .map(t => t.id);
+  await persistPlaylist(pl);
+  if (currentTrackId && playingContext && playingContext.type === "playlist" && playingContext.id === pl.id) startQueueFrom(currentTrackId);
+}
 function renderSortMenu() {
+  const inPl = view.type === "playlist";
+  const dir = inPl ? plSortDir : sortDir;
   const nameBtn = document.getElementById("sort-by-name");
   const artistBtn = document.getElementById("sort-by-artist");
-  nameBtn.classList.toggle("active", sortBy === "name");
-  artistBtn.classList.toggle("active", sortBy === "artist");
+  nameBtn.classList.toggle("active", !inPl && sortBy === "name");
+  artistBtn.classList.toggle("active", !inPl && sortBy === "artist");
+  nameBtn.title = artistBtn.title = inPl ? "Ordena y guarda el orden en esta playlist" : "";
   const dirBtn = document.getElementById("sort-toggle-dir");
-  dirBtn.innerHTML = sortDir === "asc"
+  dirBtn.innerHTML = dir === "asc"
     ? '<i data-lucide="arrow-up"></i> <span id="sort-dir-label">Ascendente</span>'
     : '<i data-lucide="arrow-down"></i> <span id="sort-dir-label">Descendente</span>';
   lucide.createIcons();
@@ -2309,10 +2327,18 @@ document.getElementById("btn-sort").onclick = (e) => {
   if (sortMenuOpen) renderSortMenu();
 };
 document.getElementById("sort-popover").onclick = (e) => e.stopPropagation();
-document.getElementById("sort-by-name").onclick = () => { sortBy = "name"; renderSortMenu(); renderMain(); lucide.createIcons(); };
-document.getElementById("sort-by-artist").onclick = () => { sortBy = "artist"; renderSortMenu(); renderMain(); lucide.createIcons(); };
-document.getElementById("sort-toggle-dir").onclick = () => { sortDir = sortDir === "asc" ? "desc" : "asc"; renderSortMenu(); renderMain(); lucide.createIcons(); };
-
+async function chooseSort(field) {
+  lastSortField = field;
+  if (view.type === "playlist") await sortPlaylistPermanently(field, plSortDir); // se guarda en la playlist
+  else { sortBy = field; savePrefs(); }                                          // biblioteca: se recuerda la preferencia
+  renderSortMenu(); render(); lucide.createIcons();
+}
+document.getElementById("sort-by-name").onclick = () => chooseSort("name");
+document.getElementById("sort-by-artist").onclick = () => chooseSort("artist");
+document.getElementById("sort-toggle-dir").onclick = () => {
+  if (view.type === "playlist") { plSortDir = plSortDir === "asc" ? "desc" : "asc"; chooseSort(lastSortField); }
+  else { sortDir = sortDir === "asc" ? "desc" : "asc"; savePrefs(); renderSortMenu(); renderMain(); lucide.createIcons(); }
+};
 document.getElementById("btn-rename-playlist").onclick = () => startRenamePlaylist(view.id);
 document.getElementById("rename-title-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") commitRenamePlaylist(editingPlaylistId, e.target.value);
