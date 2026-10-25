@@ -4,7 +4,7 @@
 </p>
 
 ## 🎵 Local web music player
-> **Note:** This page was created using Claude and may be unstable or contain errors, as it is not intended for public use. If you happen to stumble upon this repository, I’d just like to thank you for finding it.
+> **Note:** This page was created using AI and may be unstable or contain errors, as it is not intended for public use. If you happen to stumble upon this repository, I’d just like to thank you for finding it.
 
 ---
 
@@ -33,7 +33,7 @@
 * **Full Data Export:** Download your library or playlists in **CSV** (including comprehensive metadata) or **TXT** formats.
 * **Session Persistence:** Option to automatically remember the last opened playlist when you return.
 
-v1.4.5
+v1.5
 <p align="center">
   <a href="https://thenar95.github.io/chowfy/" target="_blank" rel="noopener noreferrer">
     <strong>Chowfy</strong>
