@@ -508,6 +508,25 @@ body.dnd-queue .queue-row * { pointer-events: none; }
 .nav-item, .track-row, .queue-row {
   -webkit-user-select: none; -moz-user-select: none; user-select: none;
 }
+.sub-link { cursor: pointer; }
+.sub-link:hover { color: var(--accent); text-decoration: underline; }
+.info-tabs { display: flex; gap: 8px; padding: 12px 18px 0; }
+.info-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; line-height: 1.55; }
+.info-top { display: flex; gap: 14px; align-items: flex-start; }
+.info-top img { width: 110px; max-height: 150px; object-fit: cover; border-radius: 10px; background: var(--surface); flex-shrink: 0; }
+.info-title { font-size: 17px; font-weight: 600; }
+.info-desc { font-size: 12.5px; color: var(--muted); }
+.info-facts { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.info-fact { display: flex; gap: 8px; }
+.info-fact-k { color: var(--muted); min-width: 62px; flex-shrink: 0; }
+.clean-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.clean-row { display: flex; gap: 8px; font-size: 12.5px; }
+.clean-row-k { color: var(--muted); min-width: 58px; flex-shrink: 0; }
+.clean-row-v { word-break: break-word; }
+.clean-row-v s { color: var(--muted); }
+.clean-row-v span { color: var(--accent); }
+.info-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.info-links a.lyr-btn { text-decoration: none; }
 </style>
 </head>
 <body>
@@ -823,8 +842,35 @@ body.dnd-queue .queue-row * { pointer-events: none; }
         <div class="pref-hint">Incluye título, artista, álbum, duración y si la canción tiene letra (en el CSV).</div>
       </div>
       <div class="settings-section">
+        <div class="section-label" style="padding:0;">Etiquetas</div>
+        <div class="export-btns">
+          <button class="lyr-btn" id="clean-tags-open">Limpiar nombres automáticamente</button>
+        </div>
+        <div class="pref-hint">Quita códigos de yt-dlp ([EgNU-YbNVkM]), «Audio», «Official Video», «- Topic», «spotimate», etc. Te muestra una vista previa antes de aplicar nada.</div>
+      </div>
+      <div class="settings-section">
         <button class="reset-link" id="clear-library-btn" style="color:#F0827E;">vaciar biblioteca</button>
       </div>
+    </div>
+  </div>
+
+  <div class="settings-backdrop" id="info-backdrop"></div>
+  <div class="settings-popover" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-heading" tabindex="-1" style="width:min(520px,92vw);">
+    <div class="settings-head"><span id="info-heading">Información</span><button class="icon-btn" id="info-close" title="Cerrar"><i data-lucide="x"></i></button></div>
+    <div class="info-tabs">
+      <button class="lyr-btn" id="info-tab-artist">Artista</button>
+      <button class="lyr-btn" id="info-tab-album">Álbum</button>
+    </div>
+    <div class="info-body" id="info-body"></div>
+  </div>
+
+  <div class="settings-backdrop" id="clean-backdrop"></div>
+  <div class="settings-popover" id="clean-modal" role="dialog" aria-modal="true" aria-labelledby="clean-heading" tabindex="-1" style="width:min(560px,92vw);">
+    <div class="settings-head"><span id="clean-heading">Limpiar etiquetas</span><button class="icon-btn" id="clean-close" title="Cerrar"><i data-lucide="x"></i></button></div>
+    <div class="info-body" id="clean-body"></div>
+    <div class="settings-head" style="border-bottom:none;border-top:1px solid var(--border);justify-content:flex-end;gap:8px;font-weight:400;">
+      <button class="lyr-btn" id="clean-cancel">Cancelar</button>
+      <button class="lyr-btn" id="clean-apply">Aplicar cambios</button>
     </div>
   </div>
 
@@ -1292,7 +1338,7 @@ if (isLibrary && sortBy !== "default") {
     if (subText) {
       const subLine = document.createElement("div");
       subLine.className = "track-sub";
-      subLine.textContent = subText;
+      fillSubLine(subLine, track);
       nameCell.appendChild(subLine);
     }
 
@@ -1912,8 +1958,8 @@ function syncOverlay() {
   if (!t) { closeNowPlaying(); return; }
   document.getElementById("overlay-art").innerHTML = t.artwork ? `<img src="${t.artwork}" alt="" />` : '<i data-lucide="music-2"></i>';
   document.getElementById("overlay-title").textContent = t.name;
-  const sub = [t.artist, t.album].filter(Boolean).join(" • ");
-  document.getElementById("overlay-subtitle").textContent = sub || "Chowfy";
+  const subEl = document.getElementById("overlay-subtitle");
+  if (t.artist || t.album) fillSubLine(subEl, t); else subEl.textContent = "Chowfy";
 
   const ctxTracks = getPlayingTracks();
   const idx = ctxTracks.findIndex(x => x.id === currentTrackId);
@@ -2075,15 +2121,56 @@ function updateLyricsHighlight(instant) {
   const el = els[idx];
   if (el) { el.classList.add("active"); box.scrollTo({ top: el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2, behavior: instant ? "auto" : "smooth" }); }
 }
+// Palabras que sueltan yt-dlp, los sitios de descarga y los canales de YouTube.
+const JUNK_WORDS = "official(?:\\s*(?:music\\s*)?video)?|oficial|video\\s*oficial|videoclip|music\\s*video|lyric\\s*video|lyrics?|letra|visuali[sz]er|audio(?:\\s*only)?|full\\s*album|hd|hq|4k|8k|1080p|720p|remaster(?:ed|izado|izada)?|en\\s*vivo|ao\\s*vivo|live|premiere|estreno|explicit|clean|spotify|apple\\s*music|amazon\\s*music|deezer|soundcloud|vevo|topic|spotimate|descarga|download|m\\/v";
+const JUNK_TEST = new RegExp("(?:" + JUNK_WORDS + ")", "i");
+const JUNK_ONLY = new RegExp("^(?:\\s*(?:" + JUNK_WORDS + ")\\s*[\\-–—|:]?\\s*)+$", "i");
+const JUNK_TAIL = new RegExp("\\s+(?:" + JUNK_WORDS + ")\\s*$", "i");
+// Quita las etiquetas basura que añaden los descargadores:
+//   "Cancion [EgNU-YbNVkM]" -> "Cancion"
+//   "Cancion (Official Video)" / "(Audio)" / "- Topic" / "| spotimate" -> "Cancion"
+function stripJunkTags(value) {
+  let s = String(value == null ? "" : value);
+  // 0) Guiones bajos de los nombres de archivo ("Song_Name_Official_Audio").
+  s = s.replace(/_+/g, " ");
+  // 1) Bloques entre paréntesis/corchetes que son basura o un ID de vídeo.
+  s = s.replace(/\s*[\(\[\{]([^\)\]\}]*)[\)\]\}]/g, (m, inner) => {
+    const t = inner.trim();
+    if (!t) return "";
+    if (JUNK_ONLY.test(t) || JUNK_TEST.test(t)) return "";
+    // ID tipo YouTube: mezcla mayúsculas/minúsculas, largo y con guion, "_" o dígito.
+    if (/^(?=.*[a-z])(?=.*[A-Z])[A-Za-z0-9_-]{9,}$/.test(t) && /[\d_-]/.test(t)) return "";
+    return m;
+  });
+  // 2) Sufijos basura (dos pasadas: "Song Official Audio" -> "Song Official" -> "Song").
+  for (let i = 0; i < 2; i++) {
+    s = s.replace(/\s*[-–—|]\s*[^-–—|]{1,40}$/g, m => (JUNK_TEST.test(m) ? "" : m));
+    s = s.replace(JUNK_TAIL, "");
+  }
+  // 3) IDs sueltos al final.
+  s = s.replace(/\s*[-–—|]\s*\d{6,}\s*$/, "");
+  // 4) Emojis y símbolos decorativos.
+  s = s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "");
+  // 5) Espacios y separadores sobrantes.
+  s = s.replace(/\s{2,}/g, " ").replace(/^[\s\-–—|,;:·]+|[\s\-–—|,;:·]+$/g, "");
+  return s.trim();
+}
 function cleanTitle(name, artist) {
-  let n = name.replace(/\s*\[[A-Za-z0-9_-]{6,}\]/g, "").replace(/\s*[-–|]\s*[\w-]+\.(?:app|com|net|org|io|me|cc|co)\s*$/i, "");
+  let n = stripJunkTags(name);
   if (artist) {
-    const a = artist.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const a = String(artist).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     n = n.replace(new RegExp("\\s*[-–]\\s*" + a + "\\s*$", "i"), "").replace(new RegExp("^" + a + "\\s*[-–]\\s*", "i"), "");
   }
-  n = n.replace(/\s*[\(\[][^\)\]]*(official|video|lyric|audio|hd|4k|live|vivo|remaster)[^\)\]]*[\)\]]/gi, "");
-  n = n.replace(/\s*[-–]\s*(ao vivo|live|remaster(?:ed|izado|izada)?(?:\s*\d{4})?)\s*$/i, "");
-  return n.trim() || name;
+  n = n.replace(/\s*[-–|]\s*[\w-]+\.(?:app|com|net|org|io|me|cc|co)\s*$/i, "");
+  n = stripJunkTags(n);
+  return n.trim() || String(name == null ? "" : name).trim();
+}
+// Igual que cleanTitle pero para artista/álbum (sin la lógica de "quitar el artista").
+function cleanMeta(value) {
+  let s = stripJunkTags(value);
+  // Sufijos pegados sin espacio: "TotoVEVO" -> "Toto", "ArtistaTopic" no se toca.
+  s = s.replace(/\s*VEVO\s*$/i, "").replace(/\s*-\s*Topic\s*$/i, "").trim();
+  return s || String(value == null ? "" : value).trim();
 }
 function titleParts(t) {
   const c = cleanTitle(t.name, t.artist);
@@ -2994,6 +3081,83 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type === "text") saveEdit();
 });
 
+// ---------- Limpiar etiquetas de la biblioteca ----------
+let cleanOpen = false, cleanChanges = [];
+function computeCleanChanges() {
+  const out = [];
+  tracks.forEach(t => {
+    const before = { name: t.name || "", artist: t.artist || "", album: t.album || "" };
+    const after = { name: cleanTitle(before.name, before.artist), artist: cleanMeta(before.artist), album: cleanMeta(before.album) };
+    const changed = after.name !== before.name || after.artist !== before.artist || after.album !== before.album;
+    if (changed && after.name.trim()) out.push({ id: t.id, before, after });
+  });
+  return out;
+}
+function cleanRow(label, before, after) {
+  const row = document.createElement("div"); row.className = "clean-row";
+  const k = document.createElement("div"); k.className = "clean-row-k"; k.textContent = label;
+  const v = document.createElement("div"); v.className = "clean-row-v";
+  const b = document.createElement("s"); b.textContent = before; v.appendChild(b);
+  v.appendChild(document.createTextNode(" → "));
+  const a = document.createElement("span"); a.textContent = after; v.appendChild(a);
+  row.appendChild(k); row.appendChild(v); return row;
+}
+function openCleanPreview() {
+  cleanChanges = computeCleanChanges();
+  const body = document.getElementById("clean-body");
+  body.innerHTML = "";
+  document.getElementById("clean-apply").style.display = cleanChanges.length ? "" : "none";
+  if (!cleanChanges.length) {
+    const p = document.createElement("div"); p.textContent = "No hay nada que limpiar: las etiquetas ya están limpias.";
+    body.appendChild(p);
+  } else {
+    const intro = document.createElement("div"); intro.className = "info-desc";
+    intro.textContent = cleanChanges.length + (cleanChanges.length === 1 ? " canción cambiaría:" : " canciones cambiarían:");
+    body.appendChild(intro);
+    cleanChanges.forEach(c => {
+      const box = document.createElement("div"); box.className = "clean-item";
+      if (c.after.name !== c.before.name) box.appendChild(cleanRow("Título", c.before.name, c.after.name));
+      if (c.after.artist !== c.before.artist) box.appendChild(cleanRow("Artista", c.before.artist, c.after.artist));
+      if (c.after.album !== c.before.album) box.appendChild(cleanRow("Álbum", c.before.album, c.after.album));
+      body.appendChild(box);
+    });
+  }
+  cleanOpen = true;
+  document.getElementById("clean-modal").style.display = "flex";
+  document.getElementById("clean-backdrop").style.display = "block";
+}
+function closeCleanPreview() {
+  cleanOpen = false; cleanChanges = [];
+  document.getElementById("clean-modal").style.display = "none";
+  document.getElementById("clean-backdrop").style.display = "none";
+}
+async function applyCleanChanges() {
+  if (!cleanChanges.length) { closeCleanPreview(); return; }
+  const n = cleanChanges.length;
+  cleanChanges.forEach(c => {
+    const t = tracks.find(x => x.id === c.id);
+    if (!t) return;
+    t.name = c.after.name; t.artist = c.after.artist; t.album = c.after.album;
+  });
+  try {
+    for (const c of cleanChanges) {
+      const rec = await dbGet("tracks", c.id);
+      if (rec) { rec.name = c.after.name; rec.artist = c.after.artist; rec.album = c.after.album; await dbPut("tracks", rec); }
+    }
+  } catch (e) { alert("Algunos cambios no se pudieron guardar."); }
+  lastMediaKey = undefined;
+  cleanChanges.forEach(c => { if (autoTriedFor === c.id) autoTriedFor = null; }); // permite re-buscar letra con el nombre nuevo
+  closeCleanPreview(); render();
+  showToastAbove(document.getElementById("clean-tags-open"), n + (n === 1 ? " canción actualizada" : " canciones actualizadas"));
+}
+document.getElementById("clean-tags-open").onclick = openCleanPreview;
+document.getElementById("clean-modal").onclick = (e) => e.stopPropagation();
+document.getElementById("clean-backdrop").onclick = closeCleanPreview;
+document.getElementById("clean-close").onclick = closeCleanPreview;
+document.getElementById("clean-cancel").onclick = closeCleanPreview;
+document.getElementById("clean-apply").onclick = applyCleanChanges;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && cleanOpen) closeCleanPreview(); });
+
 // ---------- Elegir otra versión de la letra ----------
 let verOpen = false, verFor = null;
 function fmtT(sec) { return durText(sec) || "0:00"; }
@@ -3162,7 +3326,363 @@ document.addEventListener("keydown", (e) => {
     document.getElementById("btn-mute").click();
   }
 });
-
+// ---------- Información de artista / álbum (Wikipedia) ----------
+const infoCache = new Map();
+let infoOpen = false, infoTrackId = null, infoKind = "artist", infoToken = 0, infoPrevFocus = null;
+// Palabras musicales con límites de palabra: evita falsos positivos como "pop" en "popular"
+// o "band" en "bandera". Antes el filtro era demasiado laxo.
+const INFO_MUSIC = /(m[uú]sic|cantante|cantautor|rap(?:ero|per)|banda|grupo musical|d[uú]o|compositor|productor|[aá]lbum|sencillo|canci[oó]n|singer|songwriter|musician|band\b|album|record|hip hop|\brock\b|\bpop\b|\bjazz\b|\bdisco\b)/i;
+// Descripción que identifica a un artista (persona o grupo), no a una obra suya.
+const INFO_ROLE = /(cantante|cantautor|m[uú]sico|compositor|productor|rapero|trapero|banda|grupo|d[uú]o|singer|songwriter|musician|composer|producer|rapper|band|duo)/i;
+// Desambiguadores de título que delatan "otra cosa" según lo que buscamos.
+const INFO_NEG_ARTIST = /\((canci[oó]n|sencillo|[aá]lbum|videojuego|pel[ií]cula|banda sonora|serie|libro|novela|song|single|album|video game|film|soundtrack|book)\)/i;
+const INFO_NEG_ALBUM = /\((canci[oó]n|sencillo|videojuego|pel[ií]cula|banda sonora|serie|libro|novela|song|single|video game|film|soundtrack|book)\)/i;
+const INFO_POS_ALBUM = /\(([aá]lbum|album)\)|[aá]lbum de estudio/i;
+// Normaliza para comparar: quita puntos ("G.I.T." -> "git", "R.E.M." -> "rem"),
+// acentos y separadores, para que los nombres con siglas sí coincidan.
+function infoNorm(t) { return (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\./g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
+// Compara títulos por PALABRAS COMPLETAS, no por subcadena.
+// 3 = igual, 2 = aparece como frase completa, 0 = no coincide.
+// Así "git" ya no coincide con "the gits" (que era otra banda).
+function infoMatch(t, n) {
+  if (!t || !n) return 0;
+  if (t === n) return 3;
+  if ((" " + t + " ").includes(" " + n + " ")) return 2;
+  return 0;
+}
+async function wikiSearch(lang, q, attempt = 0) {
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const url = "https://" + lang + ".wikipedia.org/w/api.php?" + new URLSearchParams({
+      action: "query", format: "json", origin: "*", generator: "search", gsrsearch: q, gsrlimit: "4",
+      prop: "extracts|pageimages|description|info", exintro: "1", explaintext: "1", exsentences: "5",
+      piprop: "thumbnail", pithumbsize: "320", inprop: "url", redirects: "1"
+    });
+    const r = await fetch(url, { signal: ctl.signal });
+    // 429 = rate limit. Reintenta con espera creciente en vez de dar "no encontrado".
+    if (r.status === 429 && attempt < 3) {
+      clearTimeout(to);
+      await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
+      return wikiSearch(lang, q, attempt + 1);
+    }
+    if (!r.ok) return null; // null = fallo de red/API (no cachear como "sin resultados")
+    const d = await r.json();
+    return Object.values((d.query && d.query.pages) || {}).sort((a, b) => a.index - b.index);
+  } catch (e) { return null; } finally { clearTimeout(to); }
+}
+// Puntúa un candidato de Wikipedia. Más alto = mejor. -1 = descartado.
+function infoScore(pg, name, kind, artist) {
+  const n = infoNorm(name), t = infoNorm(pg.title);
+  if (!n || !t) return -1;
+  const desc = pg.description || "", text = desc + " " + (pg.extract || "");
+  if (/desambiguaci|disambiguation|puede referirse|may refer to/i.test(text)) return -1;
+  // El título debe coincidir por palabras completas con el nombre buscado.
+  const m = infoMatch(t, n);
+  if (!m) return -1;
+  let score = m === 3 ? 100 : 60;
+  // Título mucho más largo que el nombre => probablemente otra obra ("The Beatles: Rock Band").
+  if (t.length > n.length + 12) score -= 40;
+  // El nombre solo aparece al final ("Joaquín Rodrigo" para "Rodrigo"): suele ser un apellido
+  // de otra persona, no el artista que buscamos.
+  if (m === 2 && t.endsWith(" " + n)) score -= 30;
+  if (kind === "artist") {
+    // Descartar obras (álbum/canción/juego/película) que solo mencionan al artista.
+    if (/([aá]lbum|canci[oó]n|sencillo|videojuego|pel[ií]cula)/i.test(desc) && !INFO_ROLE.test(desc)) return -1;
+    if (INFO_NEG_ARTIST.test(pg.title)) score -= 70;
+    if (INFO_ROLE.test(desc)) score += 50;          // "banda británica de rock", "grupo musical de Argentina"...
+    else if (m === 3 && INFO_MUSIC.test(text)) score += 8;
+    else return -1;                                 // sin rol musical y sin título exacto: no es el artista
+  } else {
+    if (INFO_NEG_ALBUM.test(pg.title)) score -= 70;
+    if (INFO_POS_ALBUM.test(pg.title) || INFO_POS_ALBUM.test(desc)) score += 30;
+    if (/([aá]lbum|EP\b|\bdisco\b)/i.test(desc)) score += 50;
+    else if (INFO_MUSIC.test(text)) score += 8;
+    else return -1;
+    // El álbum tiene que estar ligado al artista.
+    if (artist && !infoNorm(text + " " + pg.title).includes(infoNorm(artist))) return -1;
+  }
+  return score;
+}
+// ---------- Proveedores de información (todos gratuitos y sin token) ----------
+// 1) Wikipedia   -> texto largo y legible
+// 2) MusicBrainz -> datos duros que desambiguan (tipo, país, años) y suelen acertar donde Wikipedia falla
+// 3) iTunes      -> último recurso (género + enlace)
+async function wikiProvider(kind, name, artist) {
+  const Q = {
+    es: kind === "artist" ? [name, name + " cantante banda músico"] : [name + " " + artist + " álbum", name + " " + artist],
+    en: kind === "artist" ? [name, name + " singer band musician"] : [name + " " + artist + " album", name + " " + artist]
+  };
+  let best = null, bestScore = -1;
+  outer: for (const lang of ["es", "en"]) {
+    for (const q of Q[lang]) {
+      const pages = await wikiSearch(lang, q);
+      if (!pages) continue;
+      for (const pg of pages) {
+        const s = infoScore(pg, name, kind, artist);
+        if (s > bestScore) {
+          bestScore = s;
+          best = { title: pg.title, description: pg.description || "", extract: pg.extract || "", thumb: pg.thumbnail ? pg.thumbnail.source : "", url: pg.fullurl || pg.canonicalurl || "", lang, source: "Wikipedia" };
+        }
+      }
+      if (bestScore >= 100) break outer; // título exacto: no se puede mejorar
+    }
+  }
+  return bestScore >= 50 ? best : null;
+}
+// MusicBrainz: gratis, sin token. Su campo "type/country/disambiguation" es justo lo que
+// hace falta para no confundir "GIT" (banda argentina) con "The Gits".
+// MusicBrainz limita a ~1 petición/segundo: reintenta con espera si responde 503/429.
+async function mbFetch(url, attempt = 0) {
+  const r = await fetch(url).catch(() => null);
+  if (!r) return null;
+  if ((r.status === 503 || r.status === 429) && attempt < 3) {
+    await new Promise(res => setTimeout(res, 1100 * (attempt + 1)));
+    return mbFetch(url, attempt + 1);
+  }
+  if (!r.ok) return null;
+  try { return await r.json(); } catch (e) { return null; }
+}
+async function mbProvider(name) {
+  const d = await mbFetch("https://musicbrainz.org/ws/2/artist?" + new URLSearchParams({ query: name, fmt: "json", limit: "5" }));
+  if (!d || !d.artists) return null;
+  const n = infoNorm(name);
+  let pick = null, best = -1;
+  for (const a of d.artists) {
+    let m = infoMatch(infoNorm(a.name), n);
+    if (!m && (a.aliases || []).some(x => infoMatch(infoNorm(x.name), n))) m = 2;
+    if (!m) continue;
+    let s = (m === 3 ? 100 : 60) + (a.score || 0) / 10;
+    if (a.type === "Group" || a.type === "Person") s += 20;
+    if (!a.country && !a.area) s -= 10;
+    if (s > best) { best = s; pick = a; }
+  }
+  if (!pick) return null;
+  const facts = [];
+  if (pick.type) facts.push(["Tipo", pick.type === "Group" ? "Grupo" : pick.type === "Person" ? "Solista" : pick.type]);
+  if (pick.area && pick.area.name) facts.push(["Origen", pick.area.name]);
+  else if (pick.country) facts.push(["Origen", pick.country]);
+  const ls = pick["life-span"];
+  if (ls && ls.begin) facts.push(["Activo", ls.begin + " – " + (ls.ended ? (ls.end || "?") : "actualidad")]);
+  return {
+    title: pick.name, description: pick.disambiguation || "", extract: "", thumb: "",
+    url: "https://musicbrainz.org/artist/" + pick.id, id: pick.id, lang: "", source: "MusicBrainz", facts
+  };
+}
+// ¿El artículo de Wikipedia corresponde al MISMO artista que MusicBrainz?
+// Solo acepta el nombre igual o el nombre + un calificador corto ("GIT (banda)").
+function sameEntity(wikiTitle, mbName) {
+  const a = infoNorm(wikiTitle), b = infoNorm(mbName);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.startsWith(b + " ")) return a.slice(b.length + 1).split(" ").length <= 3;
+  return false;
+}
+// Enriquece: dato de MusicBrainz -> artículo exacto de Wikipedia (vía Wikidata si hace falta).
+// Esto evita mezclar el texto de una persona con los datos de otra.
+async function wikiByTitle(lang, title) {
+  const r = await fetch("https://" + lang + ".wikipedia.org/w/api.php?" + new URLSearchParams({
+    action: "query", format: "json", origin: "*", titles: title, redirects: "1",
+    prop: "extracts|pageimages|description|info", exintro: "1", explaintext: "1", exsentences: "5",
+    piprop: "thumbnail", pithumbsize: "320", inprop: "url"
+  })).catch(() => null);
+  if (!r || !r.ok) return null;
+  let d;
+  try { d = await r.json(); } catch (e) { return null; }
+  const pg = Object.values((d.query && d.query.pages) || {})[0];
+  if (!pg || pg.missing !== undefined || !pg.title) return null;
+  return { title: pg.title, description: pg.description || "", extract: pg.extract || "", thumb: pg.thumbnail ? pg.thumbnail.source : "", url: pg.fullurl || "", lang, source: "Wikipedia" };
+}
+async function mbWikiLink(mbid) {
+  const d = await mbFetch("https://musicbrainz.org/ws/2/artist/" + mbid + "?inc=url-rels&fmt=json");
+  if (!d || !d.relations) return null;
+  const wp = d.relations.find(r => r.type === "wikipedia" && r.url);
+  if (wp) {
+    const m = /^https?:\/\/([a-z]{2,3})\.wikipedia\.org\/wiki\/(.+)$/.exec(wp.url.resource);
+    if (m) return { lang: m[1], title: decodeURIComponent(m[2]).replace(/_/g, " ") };
+  }
+  const wd = d.relations.find(r => r.type === "wikidata" && r.url);
+  const qid = wd ? /(Q\d+)$/.exec(wd.url.resource) : null;
+  if (!qid) return null;
+  const q = await fetchJson("https://www.wikidata.org/w/api.php?" + new URLSearchParams({
+    action: "wbgetentities", ids: qid[1], props: "sitelinks", sitefilter: "eswiki|enwiki", format: "json", origin: "*"
+  }), 8000);
+  const ent = q && q.entities && q.entities[qid[1]];
+  const sl = ent && ent.sitelinks;
+  if (!sl) return null;
+  const pick = sl.eswiki || sl.enwiki;
+  return pick ? { lang: pick.site === "eswiki" ? "es" : "en", title: pick.title } : null;
+}
+// iTunes Search API: gratis, sin token, CORS abierto.
+async function itunesProvider(name, kind, artist) {
+  const term = [name, artist].filter(Boolean).join(" ");
+  const d = await fetchJson("https://itunes.apple.com/search?" + new URLSearchParams({ term, entity: kind === "artist" ? "musicArtist" : "album", limit: "5" }), 8000);
+  if (!d || !d.results || !d.results.length) return null;
+  const n = infoNorm(name), na = infoNorm(artist || "");
+  const titleOf = x => infoNorm(kind === "artist" ? x.artistName : x.collectionName);
+  // Prioriza coincidencia de título; si es un álbum, exige además que sea del artista.
+  const r = d.results.find(x => infoMatch(titleOf(x), n) && (!na || infoNorm(x.artistName || "") === na))
+    || d.results.find(x => infoMatch(titleOf(x), n))
+    || (na && d.results.find(x => infoNorm(x.artistName || "") === na))
+    || d.results[0];
+  const facts = [];
+  if (r.primaryGenreName) facts.push(["Género", r.primaryGenreName]);
+  if (kind === "album" && r.artistName) facts.push(["Artista", r.artistName]);
+  return {
+    title: kind === "artist" ? r.artistName : r.collectionName, description: "", extract: "",
+    thumb: r.artworkUrl100 ? r.artworkUrl100.replace("100x100", "320x320") : "",
+    url: r.artistLinkUrl || r.collectionViewUrl || "", lang: "", source: "iTunes", facts
+  };
+}
+async function infoLookup(kind, artist, album) {
+  const key = kind + "|" + artist + "|" + album;
+  if (infoCache.has(key)) return infoCache.get(key);
+  const a = firstArtist(artist), name = kind === "artist" ? a : album;
+  if (!name) return null;
+  // Wikipedia y MusicBrainz en paralelo: uno aporta el texto, el otro los datos verificables.
+  let ok = false;
+  const wikiP = wikiProvider(kind, name, a).then(v => { ok = true; return v; }).catch(() => null);
+  const mbP = kind === "artist" ? mbProvider(name).then(v => { ok = true; return v; }).catch(() => null) : Promise.resolve(null);
+  const [wiki, mb] = await Promise.all([wikiP, mbP]);
+  let res = wiki;
+  if (mb) {
+    // Si Wikipedia habló de OTRA persona o grupo, manda MusicBrainz:
+    // resolvemos el artículo exacto de ese artista (MusicBrainz -> Wikidata -> Wikipedia).
+    if (res && !sameEntity(res.title, mb.title)) {
+      const link = await mbWikiLink(mb.id);
+      const alt = link ? await wikiByTitle(link.lang, link.title) : null;
+      res = alt || mb;
+    } else if (!res) {
+      res = mb;
+    }
+    if (res) { res.facts = mb.facts; res.mbUrl = mb.url; res.description = res.description || mb.description; }
+  }
+  if (!res) res = await itunesProvider(name, kind, kind === "album" ? a : "").catch(() => null);
+  if (ok) {
+    if (infoCache.size > 200) infoCache.clear(); // caché acotada para no crecer sin límite
+    infoCache.set(key, res);
+  }
+  return res;
+}
+function fillSubLine(el, track) {
+  el.textContent = "";
+  const parts = [];
+  if (track.artist) parts.push(["artist", track.artist]);
+  if (track.album) parts.push(["album", track.album]);
+  parts.forEach(([kind, text], i) => {
+    if (i) el.appendChild(document.createTextNode(" • "));
+    const sp = document.createElement("span");
+    sp.className = "sub-link"; sp.textContent = text; sp.title = "Ver información";
+    // Accesible por teclado, igual que un botón.
+    sp.setAttribute("role", "button");
+    sp.tabIndex = 0;
+    sp.onclick = (e) => { e.stopPropagation(); openInfo(track.id, kind); };
+    sp.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); openInfo(track.id, kind); }
+    };
+    el.appendChild(sp);
+  });
+}
+function openInfo(trackId, kind) {
+  if (!tracks.find(x => x.id === trackId)) return;
+  if (!infoOpen) infoPrevFocus = document.activeElement;
+  infoTrackId = trackId; infoKind = kind; infoOpen = true;
+  document.getElementById("info-modal").style.display = "flex";
+  document.getElementById("info-backdrop").style.display = "block";
+  renderInfo();
+  const closeBtn = document.getElementById("info-close");
+  if (closeBtn) closeBtn.focus({ preventScroll: true });
+}
+function closeInfo() {
+  infoOpen = false; infoToken++;
+  document.getElementById("info-modal").style.display = "none";
+  document.getElementById("info-backdrop").style.display = "none";
+  // Devuelve el foco a donde estaba: sin esto, navegar con teclado se rompe.
+  if (infoPrevFocus && document.contains(infoPrevFocus) && typeof infoPrevFocus.focus === "function") {
+    infoPrevFocus.focus({ preventScroll: true });
+  }
+  infoPrevFocus = null;
+}
+function infoLink(href, label) {
+  const a = document.createElement("a");
+  a.className = "lyr-btn"; a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = label;
+  return a;
+}
+async function renderInfo() {
+  const t = tracks.find(x => x.id === infoTrackId);
+  if (!t) { closeInfo(); return; }
+  const artist = firstArtist(t.artist), album = t.album || "";
+  const tabA = document.getElementById("info-tab-artist"), tabB = document.getElementById("info-tab-album");
+  tabA.style.display = artist ? "" : "none"; tabB.style.display = album ? "" : "none";
+  tabA.classList.toggle("active", infoKind === "artist"); tabB.classList.toggle("active", infoKind === "album");
+  const name = infoKind === "artist" ? artist : album;
+  document.getElementById("info-heading").textContent = name || "Información";
+  const body = document.getElementById("info-body");
+  body.innerHTML = "";
+  const wait = document.createElement("div"); wait.className = "info-desc"; wait.textContent = "Buscando información…";
+  body.appendChild(wait);
+  const token = ++infoToken;
+  // Si la red falla, el modal NUNCA debe quedarse colgado en "Buscando…".
+  let res = null, lookupFailed = false;
+  try { res = await infoLookup(infoKind, t.artist || "", album); }
+  catch (e) { lookupFailed = true; }
+  if (token !== infoToken || !infoOpen) return;
+  body.innerHTML = "";
+  if (lookupFailed) {
+    const msg = document.createElement("div");
+    msg.textContent = "No se pudo consultar la información. Revisa tu conexión e inténtalo otra vez.";
+    body.appendChild(msg);
+    const links = document.createElement("div"); links.className = "info-links";
+    const retry = document.createElement("button");
+    retry.className = "lyr-btn"; retry.textContent = "Reintentar";
+    retry.onclick = () => renderInfo();
+    links.appendChild(retry);
+    body.appendChild(links);
+    return;
+  }
+  if (res) {
+    const top = document.createElement("div"); top.className = "info-top";
+    if (res.thumb) { const img = document.createElement("img"); img.src = res.thumb; img.alt = ""; top.appendChild(img); }
+    const head = document.createElement("div");
+    const ti = document.createElement("div"); ti.className = "info-title"; ti.textContent = res.title;
+    head.appendChild(ti);
+    if (res.description) { const de = document.createElement("div"); de.className = "info-desc"; de.textContent = res.description; head.appendChild(de); }
+    top.appendChild(head); body.appendChild(top);
+    if (res.facts && res.facts.length) {
+      const dl = document.createElement("div"); dl.className = "info-facts";
+      res.facts.forEach(([k, v]) => {
+        const row = document.createElement("div"); row.className = "info-fact";
+        const kk = document.createElement("span"); kk.className = "info-fact-k"; kk.textContent = k;
+        const vv = document.createElement("span"); vv.textContent = v;
+        row.appendChild(kk); row.appendChild(vv); dl.appendChild(row);
+      });
+      body.appendChild(dl);
+    }
+    if (res.extract) { const ex = document.createElement("div"); ex.textContent = res.extract; body.appendChild(ex); }
+    const links = document.createElement("div"); links.className = "info-links";
+    if (res.url) links.appendChild(infoLink(res.url, res.source === "Wikipedia" ? "Leer en Wikipedia" : "Ver en " + res.source));
+    if (res.mbUrl) links.appendChild(infoLink(res.mbUrl, "Ver en MusicBrainz"));
+    const src = document.createElement("div"); src.className = "info-desc";
+    src.textContent = res.source === "Wikipedia"
+      ? "Fuente: Wikipedia (" + res.lang + "), texto bajo licencia CC BY-SA."
+      : "Datos: " + res.source + (res.source === "MusicBrainz" ? " (CC0)" : "");
+    body.appendChild(links); body.appendChild(src);
+  } else {
+    const msg = document.createElement("div");
+    msg.textContent = navigator.onLine === false ? "Sin conexión a internet." : "No encontré información para «" + name + "».";
+    body.appendChild(msg);
+    const q = encodeURIComponent(name + (infoKind === "album" && artist ? " " + artist : ""));
+    const links = document.createElement("div"); links.className = "info-links";
+    links.appendChild(infoLink("https://es.wikipedia.org/w/index.php?search=" + q, "Buscar en Wikipedia"));
+    links.appendChild(infoLink("https://www.google.com/search?q=" + q, "Buscar en la web"));
+    body.appendChild(links);
+  }
+}
+document.getElementById("info-modal").onclick = (e) => e.stopPropagation();
+document.getElementById("info-backdrop").onclick = closeInfo;
+document.getElementById("info-close").onclick = closeInfo;
+document.getElementById("info-tab-artist").onclick = () => { infoKind = "artist"; renderInfo(); };
+document.getElementById("info-tab-album").onclick = () => { infoKind = "album"; renderInfo(); };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && infoOpen) closeInfo(); });
 // ---------- Init ----------
 async function initApp() {
   loadPrefs();
