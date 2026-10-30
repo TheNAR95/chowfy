@@ -33,7 +33,11 @@
 * **Full Data Export:** Download your library or playlists in **CSV** (including comprehensive metadata) or **TXT** formats.
 * **Session Persistence:** Option to automatically remember the last opened playlist when you return.
 
-v1.5
+### 📊 Playback Times and Statistics
+- **Total Playback Time:** Shows the total time you've spent listening to music on the page.
+- **Statistics by Song:** Tracks and displays the cumulative playback time for each song in your library.
+
+v1.6
 <p align="center">
   <a href="https://thenar95.github.io/chowfy/" target="_blank" rel="noopener noreferrer">
     <strong>Chowfy</strong>
