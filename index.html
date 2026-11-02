@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -725,8 +725,8 @@ body.dnd-queue .queue-row * { pointer-events: none; }
     <div class="overlay-layout" id="overlay-layout">
     <div class="overlay-left">
     <div class="overlay-art" id="overlay-art"><i data-lucide="music-2"></i></div>
-    <div class="overlay-title" id="overlay-title"></div>
-    <div class="overlay-subtitle" id="overlay-subtitle"></div>
+    <div class="overlay-title" id="overlay-title" data-no-i18n></div>
+    <div class="overlay-subtitle" id="overlay-subtitle" data-no-i18n></div>
     <input type="file" id="lyrics-file-input" accept=".lrc,.txt,text/plain" style="display:none;" />
 
     <div class="overlay-controls">
@@ -757,7 +757,7 @@ body.dnd-queue .queue-row * { pointer-events: none; }
           <button class="lyr-icon" id="btn-lyrics-clear" title="Quitar letra"><i data-lucide="x"></i></button>
         </span>
       </div>
-      <div id="lyrics-lines"></div>
+      <div id="lyrics-lines" data-no-i18n></div>
     </div>
     </div>
   </div>
@@ -814,6 +814,17 @@ body.dnd-queue .queue-row * { pointer-events: none; }
   <div class="settings-popover" id="settings-popover">
     <div class="settings-head"><span>Ajustes</span><button class="icon-btn" id="settings-close" title="Cerrar"><i data-lucide="x"></i></button></div>
     <div class="settings-body">
+      <div class="settings-section">
+        <div class="section-label" style="padding:0;">Idioma / Language</div>
+        <div class="pref-row">
+          <span>Idioma</span>
+          <select id="lang-select" class="text-input" style="flex:none;width:auto;" aria-label="Idioma">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+        <div class="pref-hint">El idioma se guarda en este navegador.</div>
+      </div>
       <div class="settings-section">
         <div class="section-label" style="padding:0;">Personalizar</div>
         <div class="pref-row">
@@ -897,13 +908,13 @@ body.dnd-queue .queue-row * { pointer-events: none; }
       <button class="lyr-btn" id="info-tab-artist">Artista</button>
       <button class="lyr-btn" id="info-tab-album">Álbum</button>
     </div>
-    <div class="info-body" id="info-body"></div>
+    <div class="info-body" id="info-body" data-no-i18n></div>
   </div>
 
   <div class="settings-backdrop" id="clean-backdrop"></div>
   <div class="settings-popover" id="clean-modal" role="dialog" aria-modal="true" aria-labelledby="clean-heading" tabindex="-1" style="width:min(560px,92vw);">
     <div class="settings-head"><span id="clean-heading">Limpiar etiquetas</span><button class="icon-btn" id="clean-close" title="Cerrar"><i data-lucide="x"></i></button></div>
-    <div class="info-body" id="clean-body"></div>
+    <div class="info-body" id="clean-body" data-no-i18n></div>
     <div class="settings-head" style="border-bottom:none;border-top:1px solid var(--border);justify-content:flex-end;gap:8px;font-weight:400;">
       <button class="lyr-btn" id="clean-cancel">Cancelar</button>
       <button class="lyr-btn" id="clean-apply">Aplicar cambios</button>
@@ -917,7 +928,7 @@ body.dnd-queue .queue-row * { pointer-events: none; }
       <button class="lyr-btn" id="stats-tab-summary">Resumen</button>
       <button class="lyr-btn" id="stats-tab-songs">Por canción</button>
     </div>
-    <div class="info-body" id="stats-body"></div>
+    <div class="info-body" id="stats-body" data-no-i18n></div>
     <div class="settings-head" style="border-bottom:none;border-top:1px solid var(--border);justify-content:flex-end;gap:8px;font-weight:400;">
       <button class="lyr-btn" id="stats-export-csv">Exportar CSV</button>
       <button class="lyr-btn" id="stats-export-txt">Exportar TXT</button>
@@ -999,6 +1010,426 @@ let dragQueueFromIndex = null;
 const DEFAULT_SEED = "#4C6EF5";
 const audio = document.getElementById("audio");
 const PREFS_KEY = "chowfy-prefs";
+
+// ---------- Idioma / Language ----------
+// Chowfy is written in Spanish; English is the default UI language. The
+// dictionary is keyed by the exact Spanish text, so switching back to Spanish
+// needs no extra copy: the source strings are the Spanish ones.
+let lang = "en"; // "en" | "es"
+const EN = {
+  // Sidebar / header
+  "Biblioteca": "Library",
+  "Buscar en YT Music": "Search YT Music",
+  "Nueva playlist": "New playlist",
+  "Nombre de la playlist": "Playlist name",
+  "Ajustes": "Settings",
+  "Cambiar carátula": "Change cover",
+  "Renombrar": "Rename",
+  "Eliminar": "Delete",
+  "Eliminar playlist": "Delete playlist",
+  "Ordenar canciones": "Sort songs",
+  "Nombre": "Name",
+  "Artista": "Artist",
+  "Ascendente": "Ascending",
+  "Descendente": "Descending",
+  "Buscar canciones...": "Search songs...",
+  "Añadir canciones": "Add songs",
+  "Añadir a esta playlist": "Add to this playlist",
+  "Letra": "Lyrics",
+  "Cerrar": "Close",
+  "Arrastra para cambiar el ancho": "Drag to resize",
+  "Nada sonando": "Nothing playing",
+  "SELECCIONA UNA CANCIÓN": "SELECT A SONG",
+  "Aleatorio": "Shuffle",
+  "Repetición": "Repeat",
+  "Reproducir esta playlist al azar": "Shuffle this playlist",
+  "Ecualizador": "Equalizer",
+  "Reiniciar": "Reset",
+  "Por defecto": "Default",
+  "Guardar como etiqueta": "Save as preset",
+  "Nombre de la etiqueta": "Preset name",
+  "Cola de reproducción": "Playback queue",
+  "Vaciar cola": "Clear queue",
+  "Temporizador de apagado": "Sleep timer",
+  "Temporizador": "Timer",
+  "Sin temporizador": "No timer",
+  "Al terminar la canción": "When the song ends",
+  "Personalizado": "Custom",
+  "Cancelar temporizador": "Cancel timer",
+  "Silenciar (M)": "Mute (M)",
+  "Pantalla completa": "Fullscreen",
+  "Salir de pantalla completa": "Exit fullscreen",
+
+  // Now playing / lyrics
+  "Búsqueda automática": "Auto search",
+  "Importar letra (.lrc / .txt)": "Import lyrics (.lrc / .txt)",
+  "Sincronización": "Sync",
+  "Buscar letra online": "Search lyrics online",
+  "Elegir otra versión de la letra": "Choose another lyric version",
+  "Quitar letra": "Remove lyrics",
+  "Versiones de la letra": "Lyric versions",
+  "Artista y título…": "Artist and title…",
+  "Buscar": "Search",
+  "Sin letra": "No lyrics",
+  "No hay letra para esta canción. Impórtala (.lrc / .txt) o búscala online.": "No lyrics for this song. Import them (.lrc / .txt) or search online.",
+  "Buscando…": "Searching…",
+  "No se encontró una coincidencia segura. Escribe «artista título» para buscar:": "No safe match found. Type “artist title” to search:",
+  "No se encontró letra para esta canción.": "No lyrics found for this song.",
+  "No se pudo consultar los proveedores de letras (¿sin conexión?).": "Couldn't reach the lyrics providers (offline?).",
+  "No hay ninguna canción sonando": "No song is playing",
+  "No se pudo leer la letra de ese archivo.": "Couldn't read the lyrics from that file.",
+  "Esta canción no tiene letra": "This song has no lyrics",
+  "Sincronización: activada (clic para desactivarla solo en esta canción)": "Sync: on (click to turn it off for this song only)",
+  "Sincronización: desactivada en esta canción (clic para activarla)": "Sync: off for this song (click to turn it on)",
+  "Búsqueda automática: activada": "Auto search: on",
+  "Búsqueda automática: desactivada": "Auto search: off",
+  "Sin álbum": "No album",
+  "Usar esta versión": "Use this version",
+  "Sincronizada": "Synced",
+  "Simple": "Plain",
+  "En uso": "In use",
+  "No se encontraron versiones. Prueba con otra búsqueda.": "No versions found. Try another search.",
+  "No se pudo consultar LRCLIB (¿sin conexión?).": "Couldn't reach LRCLIB (offline?).",
+  "1.ª línea a {t}: {text}": "1st line at {t}: {text}",
+  "{n} versiones": "{n} versions",
+  "{n} versiones · tu archivo dura {dur}": "{n} versions · your file is {dur}",
+  "{n} resultados": "{n} results",
+
+  // Edit / clean / export
+  "Editar información": "Edit info",
+  "Cambiar portada": "Change cover",
+  "Quitar": "Remove",
+  "Título": "Title",
+  "Álbum": "Album",
+  "Guardar": "Save",
+  "Cancelar": "Cancel",
+  "No se pudieron guardar los cambios.": "Couldn't save the changes.",
+  "Limpiar etiquetas": "Clean tags",
+  "Limpiar nombres automáticamente": "Clean names automatically",
+  "No hay nada que limpiar: las etiquetas ya están limpias.": "Nothing to clean: the tags are already clean.",
+  "{n} canción cambiaría:": "{n} song would change:",
+  "{n} canciones cambiarían:": "{n} songs would change:",
+  "Algunos cambios no se pudieron guardar.": "Some changes couldn't be saved.",
+  "{n} canción actualizada": "{n} song updated",
+  "{n} canciones actualizadas": "{n} songs updated",
+  "Aplicar cambios": "Apply changes",
+  "Exportar": "Export",
+  "Qué exportar": "What to export",
+  "Biblioteca completa": "Full library",
+  "Exportar CSV": "Export CSV",
+  "Exportar TXT": "Export TXT",
+  "Incluye título, artista, álbum, duración y si la canción tiene letra (en el CSV).": "Includes title, artist, album, duration, and whether the song has lyrics (in the CSV).",
+  "No hay canciones para exportar.": "No songs to export.",
+  "Lista": "List",
+  "N°": "#",
+  "Duración": "Duration",
+  "sincronizada": "synced",
+  "simple": "plain",
+  "no": "no",
+  "{n} canciones": "{n} songs",
+  "{n} canción": "{n} song",
+
+  // Settings
+  "Idioma": "Language",
+  "El idioma se guarda en este navegador.": "The language is saved in this browser.",
+  "Personalizar": "Customize",
+  "Color base": "Base color",
+  "restablecer": "reset",
+  "Recordar la última playlist abierta": "Remember the last opened playlist",
+  "Apariencia": "Appearance",
+  "Opacidad del fondo del reproductor": "Player background opacity",
+  "Fuente de la página": "Page font",
+  "Predeterminada": "Default",
+  "Importar archivo…": "Import file…",
+  "Restablecer": "Reset",
+  "Fuente de Google Fonts (ej. Poppins)": "Google Fonts font (e.g. Poppins)",
+  "Aplicar": "Apply",
+  "No se pudo leer esa fuente": "Couldn't read that font",
+  "No se pudo leer esa imagen": "Couldn't read that image",
+  "No se encontró esa fuente en Google Fonts": "That font wasn't found on Google Fonts",
+  "Reproducción": "Playback",
+  "Fundido entre canciones": "Fade between songs",
+  "Duración del fundido": "Fade duration",
+  "Normalizar volumen": "Normalize volume",
+  "Iguala el volumen percibido entre canciones (análisis aproximado, se guarda por canción)": "Evens out the perceived volume between songs (approximate analysis, saved per song)",
+  "Tema adaptativo (colores de la portada)": "Adaptive theme (cover colors)",
+  "Letras": "Lyrics",
+  "Desenfocar las líneas que no están sonando": "Blur lines that aren't playing",
+  "Estadísticas": "Statistics",
+  "Aún no hay reproducciones registradas.": "No plays recorded yet.",
+  "Ver informe de reproducción": "View playback report",
+  "Cuenta reproducciones, tiempo escuchado y saltos por canción. Se guarda en este navegador y puedes exportarlo.": "Counts plays, listening time, and skips per song. Stored in this browser and exportable.",
+  "Etiquetas": "Tags",
+  "Quita códigos de yt-dlp ([EgNU-YbNVkM]), «Audio», «Official Video», «- Topic», «spotimate», etc. Te muestra una vista previa antes de aplicar nada.": "Removes yt-dlp tags ([EgNU-YbNVkM]), “Audio”, “Official Video”, “- Topic”, “spotimate”, etc. Shows a preview before applying anything.",
+  "vaciar biblioteca": "clear library",
+
+  // YouTube Music
+  "Buscar en YouTube Music": "Search YouTube Music",
+  "Canción o artista…": "Song or artist…",
+  "Priorizar audio oficial (canales «- Topic») sobre videos": "Prefer official audio («- Topic» channels) over videos",
+  "Solo audio": "Audio only",
+  "Clave de API de YouTube": "YouTube API key",
+  "Pega tu clave de API de YouTube Data v3": "Paste your YouTube Data v3 API key",
+  "Escribe una canción o artista y pulsa Enter.": "Type a song or artist and press Enter.",
+  "Abrir en YouTube Music": "Open in YouTube Music",
+  "audio oficial": "official audio",
+  "Copiar enlace": "Copy link",
+  "Enlace copiado": "Link copied",
+  "No se pudo copiar": "Couldn't copy",
+  "Primero guarda tu clave de API.": "Save your API key first.",
+  "Sin resultados para esa búsqueda.": "No results for that search.",
+  "Se agotó la cuota diaria de búsquedas (se renueva a medianoche, hora del Pacífico).": "The daily search quota is used up (it resets at midnight, Pacific time).",
+  "La clave de API no es válida. Revísala con el botón de la llave.": "The API key is invalid. Check it with the key button.",
+  "Activa «YouTube Data API v3» en tu proyecto de Google Cloud.": "Enable “YouTube Data API v3” in your Google Cloud project.",
+  "La clave no tiene permiso para esta API. Revisa su configuración en Google Cloud.": "The key isn't allowed to use this API. Check its settings in Google Cloud.",
+  "No se pudo buscar (¿sin conexión o clave incorrecta?).": "Couldn't search (offline or wrong key?).",
+  "Modo solo audio activado. Pulsa Buscar para actualizar.": "Audio-only mode on. Press Search to refresh.",
+  "Modo solo audio desactivado. Pulsa Buscar para actualizar.": "Audio-only mode off. Press Search to refresh.",
+  "Clave guardada. Ya puedes buscar.": "Key saved. You can search now.",
+  "Clave eliminada.": "Key removed.",
+
+  // Playlist / library
+  "Playlist": "Playlist",
+  "No hay canciones que coincidan con tu búsqueda.": "No songs match your search.",
+  "Sin resultados": "No results",
+  "Todavía no hay canciones": "No songs yet",
+  "Esta playlist está vacía": "This playlist is empty",
+  "Sube archivos de audio desde tu equipo para empezar a escuchar.": "Upload audio files from your device to start listening.",
+  "Usa “Añadir a esta playlist” para importar canciones directo aquí, o el menú de una canción en la biblioteca.": "Use “Add to this playlist” to import songs right here, or the menu of a song in the library.",
+  "REPRODUCIENDO": "NOW PLAYING",
+  "Repetición desactivada": "Repeat off",
+  "Repitiendo toda la playlist": "Repeating the whole playlist",
+  "Repitiendo una canción": "Repeating one song",
+  "La cola está vacía": "The queue is empty",
+  "Eliminar etiqueta": "Delete preset",
+  "Reproducir": "Play",
+  "Añadir a la cola de reproducción": "Add to playback queue",
+  "Añadir a una playlist": "Add to a playlist",
+  "Estadísticas de reproducción": "Playback statistics",
+  "Eliminar de la playlist": "Remove from playlist",
+  "Eliminar de la biblioteca": "Remove from library",
+  "Crea una playlist primero": "Create a playlist first",
+  "Ordena y guarda el orden en esta playlist": "Sorts and saves the order in this playlist",
+  "¿Eliminar esta playlist? Las canciones no se borrarán de tu biblioteca.": "Delete this playlist? The songs won't be removed from your library.",
+  "¿Quitar esta canción de Chowfy? Tu archivo original no se borra.": "Remove this song from Chowfy? Your original file isn't deleted.",
+  "¿Vaciar toda tu biblioteca? Esto quita todas las canciones importadas de Chowfy (tus archivos originales en tu equipo no se borran).": "Clear your whole library? This removes every song imported into Chowfy (your original files on your device aren't deleted).",
+  "No se pudieron importar {n} archivo(s). Puede que el almacenamiento del navegador esté lleno.": "Couldn't import {n} file(s). The browser storage may be full.",
+
+  // Sleep timer
+  "Música apagada por el temporizador": "Music stopped by the timer",
+  "Se apagará al terminar esta canción": "Will stop when this song ends",
+  "Se apagará en {time}": "Will stop in {time}",
+  "Temporizador: {text}": "Timer: {text}",
+  "Escribe entre 1 y 720 minutos": "Enter a number between 1 and 720 minutes",
+
+  // Statistics
+  "Resumen": "Summary",
+  "Por canción": "By song",
+  "Tiempo escuchado": "Listening time",
+  "Reproducciones": "Plays",
+  "Canciones escuchadas": "Songs heard",
+  "Se escuchan hasta el final": "Played to the end",
+  "Más escuchadas": "Most played",
+  "Artistas por tiempo": "Artists by time",
+  "Canción": "Song",
+  "Repr.": "Plays",
+  "Tiempo": "Time",
+  "Última": "Last",
+  "Todavía no hay datos. Reproduce una canción y, cuando suene al menos la mitad (o 30 s), quedará registrada aquí.": "No data yet. Play a song and, once it plays at least half (or 30 s), it will be recorded here.",
+  "Estadísticas reiniciadas": "Statistics reset",
+  "¿Reiniciar las estadísticas de reproducción? No afecta a tus canciones, letras ni playlists.": "Reset playback statistics? This doesn't affect your songs, lyrics, or playlists.",
+  "ahora": "just now",
+  "ayer": "yesterday",
+  "hace {n} min": "{n} min ago",
+  "hace {n} h": "{n} h ago",
+  "hace {n} días": "{n} days ago",
+  "{n} canción escuchada": "{n} song heard",
+  "{n} canciones escuchadas": "{n} songs heard",
+  "{n} reproducción": "{n} play",
+  "{n} reproducciones": "{n} plays",
+  "en {n} reproducción": "in {n} play",
+  "en {n} reproducciones": "in {n} plays",
+  "de {n} canción": "of {n} song",
+  "de {n} canciones": "of {n} songs",
+  "{n} saltada": "{n} skipped",
+  "{n} saltadas": "{n} skipped",
+  "{n} completas": "{n} completed",
+  "Completadas": "Completed",
+  "Saltos": "Skips",
+  "Segundos": "Seconds",
+  "Primera": "First",
+  "Chowfy · informe de reproducción": "Chowfy · playback report",
+  "Generado: {date}": "Generated: {date}",
+  "Tiempo escuchado: {time}": "Listening time: {time}",
+  "Reproducciones: {n}": "Plays: {n}",
+  "Canciones escuchadas: {n} de {total}": "Songs heard: {n} of {total}",
+  "Completadas: {c} · Saltadas: {s}": "Completed: {c} · Skipped: {s}",
+  "== Por canción ==": "== By song ==",
+  " · última: {ago}": " · last: {ago}",
+  "Sin reproducciones registradas todavía.": "No plays recorded yet.",
+
+  // Artist / album info
+  "Información": "Information",
+  "Ver información": "View info",
+  "Buscando información…": "Searching for information…",
+  "No se pudo consultar la información. Revisa tu conexión e inténtalo otra vez.": "Couldn't fetch the information. Check your connection and try again.",
+  "Reintentar": "Retry",
+  "Leer en Wikipedia": "Read on Wikipedia",
+  "Ver en MusicBrainz": "View on MusicBrainz",
+  "Sin conexión a internet.": "No internet connection.",
+  "Buscar en Wikipedia": "Search Wikipedia",
+  "Buscar en la web": "Search the web",
+  "Tipo": "Type",
+  "Grupo": "Group",
+  "Solista": "Solo artist",
+  "Origen": "Origin",
+  "Activo": "Active",
+  "actualidad": "present",
+  "Género": "Genre",
+  "Fuente: Wikipedia ({lang}), texto bajo licencia CC BY-SA.": "Source: Wikipedia ({lang}), text under CC BY-SA license.",
+  "Datos: {source}": "Data: {source}",
+  "Datos: {source} (CC0)": "Data: {source} (CC0)",
+  "Ver en {source}": "View on {source}",
+  "No encontré información para «{name}».": "I couldn't find information for “{name}”."
+};
+
+function tr(key, vars) {
+  let s = lang === "es" ? key : (Object.prototype.hasOwnProperty.call(EN, key) ? EN[key] : key);
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+  return s;
+}
+
+const I18N_TEXT = new Map(); // Text node -> { es, en }
+const I18N_ATTR = new Map(); // Element -> { attr: { es, en } }
+const I18N_ATTRS = ["title", "placeholder", "aria-label"];
+let i18nApplying = false;
+let i18nObserver = null;
+
+function i18nLookup(str) {
+  const s = String(str == null ? "" : str);
+  return Object.prototype.hasOwnProperty.call(EN, s) ? EN[s] : null;
+}
+function translateTextNode(node) {
+  if (!node) return;
+  const parent = node.parentElement;
+  if (parent && parent.closest("[data-no-i18n]")) return;
+  if (lang !== "en") { restoreTextNode(node); return; }
+  const raw = node.nodeValue;
+  if (!raw) return;
+  const trimmed = raw.trim();
+  if (!trimmed) return;
+  const rec = I18N_TEXT.get(node);
+  if (rec && raw === rec.en) return;
+  const hit = i18nLookup(trimmed);
+  if (hit == null) { if (rec) I18N_TEXT.delete(node); return; }
+  const start = raw.indexOf(trimmed);
+  const out = raw.slice(0, start) + hit + raw.slice(start + trimmed.length);
+  I18N_TEXT.set(node, { es: raw, en: out });
+  if (out !== raw) node.nodeValue = out;
+}
+function restoreTextNode(node) {
+  const rec = I18N_TEXT.get(node);
+  if (rec && node.nodeValue === rec.en) node.nodeValue = rec.es;
+}
+function translateAttr(el, attr) {
+  if (!el || !attr) return;
+  if (el.closest("[data-no-i18n]")) return;
+  if (lang !== "en") { restoreAttr(el, attr); return; }
+  const raw = el.getAttribute(attr);
+  if (raw == null) return;
+  const trimmed = raw.trim();
+  if (!trimmed) return;
+  const all = I18N_ATTR.get(el) || {};
+  const rec = all[attr];
+  if (rec && raw === rec.en) return;
+  const hit = i18nLookup(trimmed);
+  if (hit == null) { if (rec) { delete all[attr]; I18N_ATTR.set(el, all); } return; }
+  const start = raw.indexOf(trimmed);
+  const out = raw.slice(0, start) + hit + raw.slice(start + trimmed.length);
+  all[attr] = { es: raw, en: out };
+  I18N_ATTR.set(el, all);
+  if (out !== raw) el.setAttribute(attr, out);
+}
+function restoreAttr(el, attr) {
+  const all = I18N_ATTR.get(el);
+  const rec = all && all[attr];
+  if (rec && el.getAttribute(attr) === rec.en) el.setAttribute(attr, rec.es);
+}
+function translateSubtree(root) {
+  if (lang !== "en" || !root) return;
+  if (root.nodeType === 3) { translateTextNode(root); return; }
+  if (root.nodeType !== 1) return;
+  if (root.closest("[data-no-i18n]")) return;
+  for (const a of I18N_ATTRS) if (root.hasAttribute(a)) translateAttr(root, a);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n) {
+      const p = n.parentElement;
+      if (!p || p.closest("[data-no-i18n]")) return NodeFilter.FILTER_REJECT;
+      if (p.closest("script,style,textarea")) return NodeFilter.FILTER_REJECT;
+      return n.nodeValue && n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }
+  });
+  while (walker.nextNode()) translateTextNode(walker.currentNode);
+  root.querySelectorAll("[title],[placeholder],[aria-label]").forEach(el => {
+    if (el.closest("[data-no-i18n]")) return;
+    for (const a of I18N_ATTRS) if (el.hasAttribute(a)) translateAttr(el, a);
+  });
+}
+function applyLanguage() {
+  lang = lang === "es" ? "es" : "en";
+  document.documentElement.lang = lang;
+  const sel = document.getElementById("lang-select");
+  if (sel) sel.value = lang;
+  i18nApplying = true;
+  if (document.body) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(n) {
+        const p = n.parentElement;
+        if (!p || p.closest("[data-no-i18n]")) return NodeFilter.FILTER_REJECT;
+        if (p.closest("script,style,textarea")) return NodeFilter.FILTER_REJECT;
+        return n.nodeValue && n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const n of nodes) { if (lang === "en") translateTextNode(n); else restoreTextNode(n); }
+    document.querySelectorAll("[title],[placeholder],[aria-label]").forEach(el => {
+      if (el.closest("[data-no-i18n]")) return;
+      for (const a of I18N_ATTRS) if (el.hasAttribute(a)) { if (lang === "en") translateAttr(el, a); else restoreAttr(el, a); }
+    });
+  }
+  i18nApplying = false;
+}
+function startI18nObserver() {
+  if (i18nObserver || !document.body) return;
+  i18nObserver = new MutationObserver((muts) => {
+    if (i18nApplying || lang !== "en") return;
+    for (const m of muts) {
+      if (m.type === "characterData") translateTextNode(m.target);
+      else if (m.type === "attributes") translateAttr(m.target, m.attributeName);
+      else if (m.type === "childList") m.addedNodes.forEach(translateSubtree);
+    }
+  });
+  i18nObserver.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
+}
+function setLanguage(next) {
+  lang = next === "es" ? "es" : "en";
+  savePrefs();
+  applyLanguage();
+  render();
+  refreshStatsHint();
+  if (statsOpen) renderStats();
+  if (infoOpen) renderInfo();
+  if (cleanOpen) openCleanPreview();
+  if (typeof updateEqStatusLabel === "function") updateEqStatusLabel();
+  if (typeof updateFullscreenBtn === "function") updateFullscreenBtn();
+  if (sleepPanelOpen) refreshSleepUI();
+  if (queueOpen) renderQueuePanel();
+  if (sortMenuOpen) renderSortMenu();
+  if (eqPanelOpen) renderEqualizerPanel();
+  if (lyricsVisible()) renderLyrics();
+  if (nowPlayingOverlayOpen) syncOverlay();
+}
 
 function formatTime(sec) {
   if (!isFinite(sec) || sec < 0) sec = 0;
@@ -1123,10 +1554,11 @@ function loadPrefs() {
     if (typeof p.overlayOpacity === "number") overlayOpacity = clamp(Math.round(p.overlayOpacity), 1, 100);
     if (typeof p.fontMode === "string") fontMode = p.fontMode;
     if (typeof p.fontName === "string") fontName = p.fontName;
+    if (p.lang === "en" || p.lang === "es") lang = p.lang;
   } catch (e) {}
 }
 function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ customSeed, volume, muted, repeatMode, lyricsOpen, lyricsAuto, lyricsBlur, lyricsPanel: lyricsPanelOpen, rememberView, fadeEnabled, fadeSecs, adaptive: adaptiveEnabled, lyricsPanelW, normalize: normalizeEnabled, overlayOpacity, fontMode, fontName, sortBy, sortDir })); } catch (e) {}
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ customSeed, volume, muted, repeatMode, lyricsOpen, lyricsAuto, lyricsBlur, lyricsPanel: lyricsPanelOpen, rememberView, fadeEnabled, fadeSecs, adaptive: adaptiveEnabled, lyricsPanelW, normalize: normalizeEnabled, overlayOpacity, fontMode, fontName, sortBy, sortDir, lang })); } catch (e) {}
 }
 
 // ---------- Material-You-style palette ----------
@@ -1273,7 +1705,9 @@ function renderSidebar() {
     btn.className = "nav-item" + (view.type === "playlist" && view.id === p.id ? " active" : "");
     const iconHtml = p.cover ? `<div class="nav-cover" style="background-image:url(${p.cover})"></div>` : '<i data-lucide="list-music"></i>';
     btn.innerHTML = iconHtml + '<span></span>';
-    btn.querySelector("span").textContent = p.name;
+    const nameSpan = btn.querySelector("span");
+    nameSpan.setAttribute("data-no-i18n", "");
+    nameSpan.textContent = p.name;
     btn.onclick = () => { view = { type: "playlist", id: p.id }; render(); };
     btn.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); openContextMenu(p.id, e.clientX, e.clientY); };
 
@@ -1313,7 +1747,13 @@ function renderMain() {
   const titleEl = document.getElementById("view-title");
   const renameInput = document.getElementById("rename-title-input");
   const isRenamingHere = !isLibrary && editingPlaylistId === view.id;
-  titleEl.textContent = isLibrary ? "Biblioteca" : (pl?.name || "Playlist");
+  if (isLibrary) {
+    titleEl.removeAttribute("data-no-i18n");
+    titleEl.textContent = tr("Biblioteca");
+  } else {
+    titleEl.setAttribute("data-no-i18n", "");
+    titleEl.textContent = pl?.name || "Playlist";
+  }
   titleEl.style.display = isRenamingHere ? "none" : "block";
   renameInput.style.display = isRenamingHere ? "block" : "none";
   if (isRenamingHere) {
@@ -1331,7 +1771,7 @@ function renderMain() {
     coverBtn.innerHTML = pl && pl.cover ? "" : '<i data-lucide="list-music"></i>';
   }
 
-  document.getElementById("upload-btn-label").textContent = isLibrary ? "Añadir canciones" : "Añadir a esta playlist";
+  document.getElementById("upload-btn-label").textContent = isLibrary ? tr("Añadir canciones") : tr("Añadir a esta playlist");
 
   let visible = getVisibleTracks();
   if (searchQuery) {
@@ -1355,13 +1795,13 @@ if (isLibrary && sortBy !== "default") {
     const empty = document.createElement("div");
     empty.className = "empty";
     const emptyMsg = searchQuery
-      ? "No hay canciones que coincidan con tu búsqueda."
+      ? tr("No hay canciones que coincidan con tu búsqueda.")
       : (isLibrary
-          ? "Sube archivos de audio desde tu equipo para empezar a escuchar."
-          : "Usa \u201cAñadir a esta playlist\u201d para importar canciones directo aquí, o el menú de una canción en la biblioteca.");
+          ? tr("Sube archivos de audio desde tu equipo para empezar a escuchar.")
+          : tr("Usa “Añadir a esta playlist” para importar canciones directo aquí, o el menú de una canción en la biblioteca."));
     empty.innerHTML = `
       <i data-lucide="music-2"></i>
-      <div class="empty-title">${searchQuery ? "Sin resultados" : (isLibrary ? "Todavía no hay canciones" : "Esta playlist está vacía")}</div>
+      <div class="empty-title">${searchQuery ? tr("Sin resultados") : (isLibrary ? tr("Todavía no hay canciones") : tr("Esta playlist está vacía"))}</div>
       <div style="font-size:13px;max-width:280px;">${emptyMsg}</div>`;
     trackList.appendChild(empty);
     return;
@@ -1385,12 +1825,14 @@ if (isLibrary && sortBy !== "default") {
     nameCell.className = "track-name-stack";
     const nameLine = document.createElement("div");
     nameLine.className = "track-name";
+    nameLine.setAttribute("data-no-i18n", "");
     nameLine.textContent = track.name;
     nameCell.appendChild(nameLine);
     const subText = [track.artist, track.album].filter(Boolean).join(" • ");
     if (subText) {
       const subLine = document.createElement("div");
       subLine.className = "track-sub";
+      subLine.setAttribute("data-no-i18n", "");
       fillSubLine(subLine, track);
       nameCell.appendChild(subLine);
     }
@@ -1444,8 +1886,15 @@ function renderPlayer() {
     reelHolder.innerHTML = '<div class="reel' + (isPlaying ? " spinning" : "") + '"></div>';
   }
 
-  document.getElementById("now-title").textContent = current ? current.name : "Nada sonando";
-  document.getElementById("now-sub").textContent = current ? "REPRODUCIENDO" : "SELECCIONA UNA CANCIÓN";
+  const nowTitle = document.getElementById("now-title");
+  if (current) {
+    nowTitle.setAttribute("data-no-i18n", "");
+    nowTitle.textContent = current.name;
+  } else {
+    nowTitle.removeAttribute("data-no-i18n");
+    nowTitle.textContent = tr("Nada sonando");
+  }
+  document.getElementById("now-sub").textContent = current ? tr("REPRODUCIENDO") : tr("SELECCIONA UNA CANCIÓN");
 
   const ctxTracks = getPlayingTracks();
   const idx = ctxTracks.findIndex(t => t.id === currentTrackId);
@@ -1459,7 +1908,7 @@ function renderPlayer() {
   const repeatBtn = document.getElementById("btn-repeat");
   repeatBtn.classList.toggle("active", repeatMode !== "off");
   repeatBtn.innerHTML = repeatMode === "one" ? '<i data-lucide="repeat-1"></i>' : '<i data-lucide="repeat"></i>';
-  repeatBtn.title = repeatMode === "off" ? "Repetición desactivada" : repeatMode === "all" ? "Repitiendo toda la playlist" : "Repitiendo una canción";
+  repeatBtn.title = repeatMode === "off" ? tr("Repetición desactivada") : repeatMode === "all" ? tr("Repitiendo toda la playlist") : tr("Repitiendo una canción");
 
   document.getElementById("time-current").textContent = formatTime(audio.currentTime || 0);
   document.getElementById("time-duration").textContent = formatTime(audio.duration || 0);
@@ -1502,7 +1951,7 @@ function renderQueuePanel() {
     const empty = document.createElement("div");
     empty.className = "popover-empty";
     empty.style.padding = "14px 8px";
-    empty.textContent = "La cola está vacía";
+    empty.textContent = tr("La cola está vacía");
     list.appendChild(empty);
     return;
   }
@@ -1523,6 +1972,7 @@ function renderQueuePanel() {
 
     const name = document.createElement("div");
     name.className = "queue-name";
+    name.setAttribute("data-no-i18n", "");
     name.textContent = t.name;
 
     row.appendChild(grip);
@@ -1657,9 +2107,9 @@ function updateEqSliderFill(slider, value) {
 function updateEqStatusLabel() {
   const label = document.getElementById("eq-status-label");
   if (!label) return;
-  if (eqGains.every(g => g === 0)) label.textContent = "Por defecto";
-  else if (eqActivePresetName) label.textContent = eqActivePresetName;
-  else label.textContent = "Personalizado";
+  if (eqGains.every(g => g === 0)) { label.removeAttribute("data-no-i18n"); label.textContent = tr("Por defecto"); }
+  else if (eqActivePresetName) { label.setAttribute("data-no-i18n", ""); label.textContent = eqActivePresetName; }
+  else { label.removeAttribute("data-no-i18n"); label.textContent = tr("Personalizado"); }
 }
 function applyEqGain(bandIndex, value) {
   eqGains[bandIndex] = value;
@@ -1747,11 +2197,12 @@ function renderEqualizerPanel() {
     const chip = document.createElement("button");
     chip.className = "eq-preset-chip";
     const label = document.createElement("span");
+    label.setAttribute("data-no-i18n", "");
     label.textContent = p.name;
     const del = document.createElement("span");
     del.className = "eq-preset-delete";
     del.textContent = "×";
-    del.title = "Eliminar etiqueta";
+    del.title = tr("Eliminar etiqueta");
     del.onclick = (e) => { e.stopPropagation(); deleteEqPreset(p.id); };
     chip.appendChild(label);
     chip.appendChild(del);
@@ -1825,7 +2276,7 @@ async function handleFiles(fileList) {
       render();
     } catch (err) { console.error(err); failed++; }
   }
-  if (failed) alert("No se pudieron importar " + failed + " archivo(s). Puede que el almacenamiento del navegador esté lleno.");
+  if (failed) alert(tr("No se pudieron importar {n} archivo(s). Puede que el almacenamiento del navegador esté lleno.", { n: failed }));
 }
 
 async function deleteTrack(id) {
@@ -1904,7 +2355,7 @@ document.getElementById("ctx-delete").onclick = () => {
   const id = contextMenuPlaylistId;
   closeContextMenu();
   if (id === null) return;
-  if (confirm("¿Eliminar esta playlist? Las canciones no se borrarán de tu biblioteca.")) deletePlaylist(id);
+  if (confirm(tr("¿Eliminar esta playlist? Las canciones no se borrarán de tu biblioteca."))) deletePlaylist(id);
 };
 
 // ---------- Context menu (track) ----------
@@ -1937,33 +2388,33 @@ function renderTrackMenu() {
 
   if (trackMenuMode === "main") {
     const playBtn = document.createElement("button");
-    playBtn.innerHTML = '<i data-lucide="play"></i> Reproducir';
+    playBtn.innerHTML = '<i data-lucide="play"></i> ' + tr("Reproducir");
     playBtn.onclick = () => { closeTrackMenu(); playFromCurrentView(track.id); };
     menu.appendChild(playBtn);
 
     const queueBtn = document.createElement("button");
-    queueBtn.innerHTML = '<i data-lucide="list-end"></i> Añadir a la cola de reproducción';
+    queueBtn.innerHTML = '<i data-lucide="list-end"></i> ' + tr("Añadir a la cola de reproducción");
     queueBtn.onclick = () => { closeTrackMenu(); addToQueue(track.id); };
     menu.appendChild(queueBtn);
 
     const addBtn = document.createElement("button");
-    addBtn.innerHTML = '<i data-lucide="list-plus"></i> Añadir a una playlist';
+    addBtn.innerHTML = '<i data-lucide="list-plus"></i> ' + tr("Añadir a una playlist");
     addBtn.onclick = (e) => { e.stopPropagation(); trackMenuMode = "add"; renderTrackMenu(); };
     menu.appendChild(addBtn);
 
     const editBtn = document.createElement("button");
-    editBtn.innerHTML = '<i data-lucide="pencil"></i> Editar información';
+    editBtn.innerHTML = '<i data-lucide="pencil"></i> ' + tr("Editar información");
     editBtn.onclick = () => { closeTrackMenu(); openEditModal(track.id); };
     menu.appendChild(editBtn);
 
     const statsBtn = document.createElement("button");
-    statsBtn.innerHTML = '<i data-lucide="bar-chart-3"></i> Estadísticas de reproducción';
+    statsBtn.innerHTML = '<i data-lucide="bar-chart-3"></i> ' + tr("Estadísticas de reproducción");
     statsBtn.onclick = () => { closeTrackMenu(); openStats(track.id); };
     menu.appendChild(statsBtn);
 
     if (view.type === "playlist") {
       const removeBtn = document.createElement("button");
-      removeBtn.innerHTML = '<i data-lucide="x-circle"></i> Eliminar de la playlist';
+      removeBtn.innerHTML = '<i data-lucide="x-circle"></i> ' + tr("Eliminar de la playlist");
       removeBtn.onclick = async () => {
         closeTrackMenu();
         const pl = playlists.find(p => p.id === view.id);
@@ -1976,10 +2427,10 @@ function renderTrackMenu() {
       menu.appendChild(removeBtn);
     } else {
       const delBtn = document.createElement("button");
-      delBtn.innerHTML = '<i data-lucide="trash-2"></i> Eliminar de la biblioteca';
+      delBtn.innerHTML = '<i data-lucide="trash-2"></i> ' + tr("Eliminar de la biblioteca");
       delBtn.onclick = () => {
         closeTrackMenu();
-        if (confirm("¿Quitar esta canción de Chowfy? Tu archivo original no se borra.")) deleteTrack(track.id);
+        if (confirm(tr("¿Quitar esta canción de Chowfy? Tu archivo original no se borra."))) deleteTrack(track.id);
       };
       menu.appendChild(delBtn);
     }
@@ -1987,14 +2438,17 @@ function renderTrackMenu() {
     if (playlists.length === 0) {
       const empty = document.createElement("div");
       empty.className = "popover-empty";
-      empty.textContent = "Crea una playlist primero";
+      empty.textContent = tr("Crea una playlist primero");
       menu.appendChild(empty);
     } else {
       playlists.forEach(p => {
         const item = document.createElement("button");
         const on = p.trackIds.includes(track.id);
         item.innerHTML = `<i data-lucide="${on ? "check-square" : "square"}"></i>`;
-        item.appendChild(document.createTextNode(" " + p.name));
+        const nm = document.createElement("span");
+        nm.setAttribute("data-no-i18n", "");
+        nm.textContent = " " + p.name;
+        item.appendChild(nm);
         item.onclick = (e) => { e.stopPropagation(); togglePlaylistTrack(p.id, track.id); renderTrackMenu(); };
         menu.appendChild(item);
       });
@@ -2128,7 +2582,9 @@ function placeLyricsBox() {
 }
 function refreshLyricsView() { placeLyricsBox(); activeLyricIdx = -1; updateLyricsHighlight(true); }
 function setLyricsPanel(on) {
-  lyricsPanelOpen = on; savePrefs(); applyLyricsUI(); refreshLyricsView(); maybeAutoFetchLyrics();
+  lyricsPanelOpen = on; savePrefs(); applyLyricsUI(); refreshLyricsView();
+  if (on && getCurrentTrack()) renderLyrics();
+  maybeAutoFetchLyrics();
 }
 function applyLyricsUI() {
   document.getElementById("now-playing-overlay").classList.toggle("show-lyrics", lyricsOpen);
@@ -2144,13 +2600,13 @@ function applyLyricsUI() {
   document.getElementById("opt-lyrics-blur").checked = lyricsBlur;
   const syncBtn = document.getElementById("btn-lyrics-sync");
   syncBtn.classList.toggle("active", lyricsSync);
-  syncBtn.title = lyricsSync ? "Sincronización: activada (clic para desactivarla solo en esta canción)" : "Sincronización: desactivada en esta canción (clic para activarla)";
+  syncBtn.title = lyricsSync ? tr("Sincronización: activada (clic para desactivarla solo en esta canción)") : tr("Sincronización: desactivada en esta canción (clic para activarla)");
   autoBtn.classList.toggle("active", lyricsAuto);
-  autoBtn.title = lyricsAuto ? "Búsqueda automática: activada" : "Búsqueda automática: desactivada";
+  autoBtn.title = lyricsAuto ? tr("Búsqueda automática: activada") : tr("Búsqueda automática: desactivada");
 }
 function setLyricsOpen(on) {
   lyricsOpen = on; savePrefs(); applyLyricsUI(); activeLyricIdx = -1;
-  if (on && getCurrentTrack()) { if (!nowPlayingOverlayOpen) openNowPlaying(); maybeAutoFetchLyrics(); }
+  if (on && getCurrentTrack()) { if (!nowPlayingOverlayOpen) openNowPlaying(); renderLyrics(); maybeAutoFetchLyrics(); }
   updateLyricsHighlight();
 }
 function renderLyrics() {
@@ -2159,12 +2615,12 @@ function renderLyrics() {
   const box = document.getElementById("lyrics-lines");
   box.innerHTML = ""; activeLyricIdx = -1;
   const d = lyricsData;
-  document.getElementById("lyrics-status").textContent = d ? "" : "Sin letra";
+  document.getElementById("lyrics-status").textContent = d ? "" : tr("Sin letra");
   document.getElementById("btn-lyrics-clear").style.display = d ? "" : "none";
   if (!d) {
     const e = document.createElement("div");
     e.className = "lyric-empty";
-    e.textContent = "No hay letra para esta canción. Impórtala (.lrc / .txt) o búscala online.";
+    e.textContent = tr("No hay letra para esta canción. Impórtala (.lrc / .txt) o búscala online.");
     box.appendChild(e);
     return;
   }
@@ -2306,7 +2762,7 @@ async function fetchLyricsOnline(auto) {
   const st = document.getElementById("lyrics-status");
   const dur = t.duration || audio.duration || 0;
   try {
-    st.textContent = "Buscando…";
+    st.textContent = tr("Buscando…");
     let found = null;
     for (const prov of LYRIC_PROVIDERS) {
       try { found = await prov.run(t, dur); } catch (e) { found = null; }
@@ -2314,18 +2770,18 @@ async function fetchLyricsOnline(auto) {
       found = null;
     }
     if (!found && !auto) {
-      const q = prompt("No se encontró una coincidencia segura. Escribe «artista título» para buscar:", [t.artist, cleanTitle(t.name, t.artist)].filter(Boolean).join(" "));
+      const q = prompt(tr("No se encontró una coincidencia segura. Escribe «artista título» para buscar:"), [t.artist, cleanTitle(t.name, t.artist)].filter(Boolean).join(" "));
       if (!q) { renderLyrics(); return; }
       found = fromLrclib(pickLyrics(await fetchJson("https://lrclib.net/api/search?" + new URLSearchParams({ q })), dur, false));
     }
     if (found && found.lines.length) await saveLyrics(t.id, found.lines, found.source, found.id ? { lrclibId: found.id } : undefined);
-    else { if (!auto) alert("No se encontró letra para esta canción."); renderLyrics(); }
-  } catch (e) { if (!auto) alert("No se pudo consultar los proveedores de letras (¿sin conexión?)."); renderLyrics(); }
+    else { if (!auto) alert(tr("No se encontró letra para esta canción.")); renderLyrics(); }
+  } catch (e) { if (!auto) alert(tr("No se pudo consultar los proveedores de letras (¿sin conexión?).")); renderLyrics(); }
 }
 document.getElementById("ov-btn-lyrics").onclick = () => setLyricsOpen(!lyricsOpen);
 document.getElementById("btn-lyrics").onclick = (e) => {
   e.stopPropagation();
-  if (!getCurrentTrack()) { showToastAbove(e.currentTarget, "No hay ninguna canción sonando"); return; }
+  if (!getCurrentTrack()) { showToastAbove(e.currentTarget, tr("No hay ninguna canción sonando")); return; }
   setLyricsPanel(!lyricsPanelOpen);
 };
 document.getElementById("lyrics-panel-close").onclick = () => setLyricsPanel(false);
@@ -2338,7 +2794,7 @@ document.getElementById("lyrics-file-input").onchange = async (e) => {
   if (!f || !currentTrackId) return;
   const text = await f.text();
   const lines = hasLrcStamps(text) ? parseLrc(text) : parsePlain(text);
-  if (!lines.length) { alert("No se pudo leer la letra de ese archivo."); return; }
+  if (!lines.length) { alert(tr("No se pudo leer la letra de ese archivo.")); return; }
   await saveLyrics(currentTrackId, lines, f.name);
 };
 document.getElementById("btn-lyrics-search").onclick = () => fetchLyricsOnline();
@@ -2410,7 +2866,7 @@ audio.addEventListener("ended", () => {
   statsFinalize(true);
   if (sleepOnTrackEnd) {
     cancelSleep(); isPlaying = false; fadeMul = 1; applyAudioVolume(); render();
-    showToastAbove(document.getElementById("btn-sleep"), "Música apagada por el temporizador");
+    showToastAbove(document.getElementById("btn-sleep"), tr("Música apagada por el temporizador"));
     return;
   }
   if (repeatMode === "one") {
@@ -2460,7 +2916,7 @@ async function sortPlaylistPermanently(field, dir) {
   if (!pl) return;
   const byId = new Map(tracks.map(t => [t.id, t]));
   pl.trackIds = pl.trackIds.map(id => byId.get(id)).filter(Boolean)
-    .sort((a, b) => sortKey(a, field).localeCompare(sortKey(b, field), "es", { sensitivity: "base" }) * (dir === "asc" ? 1 : -1))
+    .sort((a, b) => sortKey(a, field).localeCompare(sortKey(b, field), lang === "es" ? "es" : "en", { sensitivity: "base" }) * (dir === "asc" ? 1 : -1))
     .map(t => t.id);
   await persistPlaylist(pl);
   if (currentTrackId && playingContext && playingContext.type === "playlist" && playingContext.id === pl.id) startQueueFrom(currentTrackId);
@@ -2472,11 +2928,11 @@ function renderSortMenu() {
   const artistBtn = document.getElementById("sort-by-artist");
   nameBtn.classList.toggle("active", !inPl && sortBy === "name");
   artistBtn.classList.toggle("active", !inPl && sortBy === "artist");
-  nameBtn.title = artistBtn.title = inPl ? "Ordena y guarda el orden en esta playlist" : "";
+  nameBtn.title = artistBtn.title = inPl ? tr("Ordena y guarda el orden en esta playlist") : "";
   const dirBtn = document.getElementById("sort-toggle-dir");
   dirBtn.innerHTML = dir === "asc"
-    ? '<i data-lucide="arrow-up"></i> <span id="sort-dir-label">Ascendente</span>'
-    : '<i data-lucide="arrow-down"></i> <span id="sort-dir-label">Descendente</span>';
+    ? '<i data-lucide="arrow-up"></i> <span id="sort-dir-label">' + tr("Ascendente") + '</span>'
+    : '<i data-lucide="arrow-down"></i> <span id="sort-dir-label">' + tr("Descendente") + '</span>';
   lucide.createIcons();
 }
 document.getElementById("btn-sort").onclick = (e) => {
@@ -2507,7 +2963,7 @@ document.getElementById("rename-title-input").addEventListener("blur", (e) => {
   if (editingPlaylistId !== null) commitRenamePlaylist(editingPlaylistId, e.target.value);
 });
 document.getElementById("btn-delete-playlist").onclick = () => {
-  if (confirm("¿Eliminar esta playlist? Las canciones no se borrarán de tu biblioteca.")) deletePlaylist(view.id);
+  if (confirm(tr("¿Eliminar esta playlist? Las canciones no se borrarán de tu biblioteca."))) deletePlaylist(view.id);
 };
 document.getElementById("playlist-cover-btn").onclick = () => triggerCoverPicker(view.id);
 
@@ -2607,10 +3063,11 @@ function setSettingsOpen(on) {
 }
 document.getElementById("btn-settings").onclick = (e) => { e.stopPropagation(); setSettingsOpen(!settingsOpen); };
 document.getElementById("settings-close").onclick = () => setSettingsOpen(false);
+document.getElementById("lang-select").onchange = (e) => setLanguage(e.target.value);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && settingsOpen && !statsOpen) setSettingsOpen(false); });
 document.getElementById("opt-lyrics-blur").onchange = (e) => { lyricsBlur = e.target.checked; savePrefs(); applyLyricsUI(); };
 document.getElementById("btn-lyrics-sync").onclick = async (e) => {
-  if (!lyricsData) { showToastAbove(e.currentTarget, "Esta canción no tiene letra"); return; }
+  if (!lyricsData) { showToastAbove(e.currentTarget, tr("Esta canción no tiene letra")); return; }
   lyricsData.free = lyricsSync;
   lyricsSync = !lyricsData.free;
   try { await dbPut("lyrics", lyricsData); } catch (err) {}
@@ -2635,7 +3092,7 @@ document.getElementById("opt-remember-view").onchange = (e) => {
 function updateFullscreenBtn() {
   const btn = document.getElementById("btn-fullscreen");
   const on = !!document.fullscreenElement;
-  btn.title = on ? "Salir de pantalla completa" : "Pantalla completa";
+  btn.title = on ? tr("Salir de pantalla completa") : tr("Pantalla completa");
   btn.innerHTML = '<i data-lucide="' + (on ? "minimize" : "maximize") + '"></i>';
   lucide.createIcons();
 }
@@ -2687,12 +3144,12 @@ document.getElementById("opt-fade-secs").oninput = (e) => { fadeSecs = Number(e.
 function fmtClock(ms) { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
 function refreshSleepUI() {
   const active = sleepEndAt !== null || sleepOnTrackEnd;
-  let txt = "Sin temporizador";
-  if (sleepEndAt !== null) txt = "Se apagará en " + fmtClock(sleepEndAt - Date.now());
-  else if (sleepOnTrackEnd) txt = "Se apagará al terminar esta canción";
+  let txt = tr("Sin temporizador");
+  if (sleepEndAt !== null) txt = tr("Se apagará en {time}", { time: fmtClock(sleepEndAt - Date.now()) });
+  else if (sleepOnTrackEnd) txt = tr("Se apagará al terminar esta canción");
   const btn = document.getElementById("btn-sleep");
   btn.classList.toggle("active", active);
-  btn.title = active ? "Temporizador: " + txt : "Temporizador de apagado";
+  btn.title = active ? tr("Temporizador: {text}", { text: txt }) : tr("Temporizador de apagado");
   document.getElementById("sleep-status").textContent = txt;
   document.getElementById("sleep-cancel").style.display = active ? "" : "none";
 }
@@ -2704,7 +3161,7 @@ function fireSleep() {
   cancelSleep(true);
   const done = () => {
     audio.pause(); isPlaying = false; fadeMul = 1; applyAudioVolume(); render(); refreshSleepUI();
-    showToastAbove(document.getElementById("btn-sleep"), "Música apagada por el temporizador");
+    showToastAbove(document.getElementById("btn-sleep"), tr("Música apagada por el temporizador"));
   };
   if (fadeEnabled && isPlaying) rampFade(fadeMul, 0, fadeSecs, done); else done();
 }
@@ -2735,7 +3192,7 @@ document.querySelectorAll("[data-sleep]").forEach(b => { b.onclick = () => { sta
 document.getElementById("sleep-track-end").onclick = () => { cancelSleep(true); sleepOnTrackEnd = true; refreshSleepUI(); setSleepPanel(false); };
 document.getElementById("sleep-custom-go").onclick = () => {
   const v = Math.round(Number(document.getElementById("sleep-custom-min").value));
-  if (!(v >= 1 && v <= 720)) { showToastAbove(document.getElementById("sleep-custom-go"), "Escribe entre 1 y 720 minutos"); return; }
+  if (!(v >= 1 && v <= 720)) { showToastAbove(document.getElementById("sleep-custom-go"), tr("Escribe entre 1 y 720 minutos")); return; }
   startSleepMinutes(v); setSleepPanel(false);
 };
 document.getElementById("sleep-cancel").onclick = () => { cancelSleep(); setSleepPanel(false); };
@@ -2843,7 +3300,9 @@ function applyFontFamily(family, label) {
   const root = document.documentElement;
   if (!family) { root.classList.remove("custom-font"); root.style.removeProperty("--user-font"); }
   else { root.style.setProperty("--user-font", JSON.stringify(family)); root.classList.add("custom-font"); }
-  document.getElementById("font-current").textContent = family ? (label || family) : "Predeterminada";
+  const fontEl = document.getElementById("font-current");
+  if (family) { fontEl.setAttribute("data-no-i18n", ""); fontEl.textContent = label || family; }
+  else { fontEl.removeAttribute("data-no-i18n"); fontEl.textContent = tr("Predeterminada"); }
 }
 async function applyFontFile(blob, name) {
   const ff = new FontFace("ChowfyUserFont", await blob.arrayBuffer());
@@ -2875,7 +3334,7 @@ document.getElementById("font-file-input").onchange = async (e) => {
     await dbPut("settings", { key: "customFont", name, blob: f });
     if (googleLink) { googleLink.remove(); googleLink = null; }
     fontMode = "file"; fontName = name; savePrefs();
-  } catch (err) { showToastAbove(document.getElementById("font-import"), "No se pudo leer esa fuente"); }
+  } catch (err) { showToastAbove(document.getElementById("font-import"), tr("No se pudo leer esa fuente")); }
 };
 document.getElementById("font-google-go").onclick = async () => {
   const name = document.getElementById("font-google").value.trim();
@@ -2883,7 +3342,7 @@ document.getElementById("font-google-go").onclick = async () => {
   try {
     await loadGoogleFont(name);
     applyFontFamily(name); fontMode = "google"; fontName = name; savePrefs();
-  } catch (err) { showToastAbove(document.getElementById("font-google-go"), "No se encontró esa fuente en Google Fonts"); }
+  } catch (err) { showToastAbove(document.getElementById("font-google-go"), tr("No se encontró esa fuente en Google Fonts")); }
 };
 document.getElementById("font-reset").onclick = async () => {
   if (googleLink) { googleLink.remove(); googleLink = null; }
@@ -3017,16 +3476,16 @@ function renderYtResults(items) {
     const row = document.createElement("div"); row.className = "yt-item";
     const img = document.createElement("img"); img.src = it.thumb; img.alt = ""; img.loading = "lazy";
     const info = document.createElement("div"); info.className = "yt-info";
-    const ti = document.createElement("div"); ti.className = "yt-title"; ti.textContent = it.title; ti.title = it.title;
-    const ch = document.createElement("div"); ch.className = "yt-chan"; ch.textContent = it.channel + (/ - topic$/i.test(it.channel) ? "  ·  audio oficial" : "");
+    const ti = document.createElement("div"); ti.className = "yt-title"; ti.setAttribute("data-no-i18n", ""); ti.textContent = it.title; ti.title = it.title;
+    const ch = document.createElement("div"); ch.className = "yt-chan"; ch.setAttribute("data-no-i18n", ""); ch.textContent = it.channel + (/ - topic$/i.test(it.channel) ? "  ·  " + tr("audio oficial") : "");
     info.append(ti, ch);
     const acts = document.createElement("div"); acts.className = "yt-actions";
-    const open = document.createElement("button"); open.className = "lyr-icon"; open.title = "Abrir en YouTube Music";
+    const open = document.createElement("button"); open.className = "lyr-icon"; open.title = tr("Abrir en YouTube Music");
     open.innerHTML = '<i data-lucide="external-link"></i>';
     open.onclick = () => window.open(ytMusicUrl(it.id), "_blank", "noopener");
-    const copy = document.createElement("button"); copy.className = "lyr-icon"; copy.title = "Copiar enlace";
+    const copy = document.createElement("button"); copy.className = "lyr-icon"; copy.title = tr("Copiar enlace");
     copy.innerHTML = '<i data-lucide="copy"></i>';
-    copy.onclick = async () => showToastAbove(copy, (await copyText(ytMusicUrl(it.id))) ? "Enlace copiado" : "No se pudo copiar");
+    copy.onclick = async () => showToastAbove(copy, (await copyText(ytMusicUrl(it.id))) ? tr("Enlace copiado") : tr("No se pudo copiar"));
     acts.append(open, copy);
     row.append(img, info, acts);
     box.appendChild(row);
@@ -3037,22 +3496,22 @@ async function runYtSearch() {
   const q = document.getElementById("yt-query").value.trim();
   const st = document.getElementById("yt-status");
   if (!q) return;
-  if (!localStorage.getItem(YT_KEY)) { document.getElementById("yt-keybox").style.display = "flex"; st.textContent = "Primero guarda tu clave de API."; return; }
-  st.textContent = "Buscando…";
+  if (!localStorage.getItem(YT_KEY)) { document.getElementById("yt-keybox").style.display = "flex"; st.textContent = tr("Primero guarda tu clave de API."); return; }
+  st.textContent = tr("Buscando…");
   try {
     const items = await ytSearch(q);
     renderYtResults(items);
-    st.textContent = items.length ? items.length + " resultados" : "Sin resultados para esa búsqueda.";
+    st.textContent = items.length ? tr("{n} resultados", { n: items.length }) : tr("Sin resultados para esa búsqueda.");
   } catch (e) {
     document.getElementById("yt-results").innerHTML = "";
     const msgs = {
-      quotaExceeded: "Se agotó la cuota diaria de búsquedas (se renueva a medianoche, hora del Pacífico).",
-      keyInvalid: "La clave de API no es válida. Revísala con el botón de la llave.",
-      badRequest: "La clave de API no es válida. Revísala con el botón de la llave.",
-      accessNotConfigured: "Activa «YouTube Data API v3» en tu proyecto de Google Cloud.",
-      forbidden: "La clave no tiene permiso para esta API. Revisa su configuración en Google Cloud."
+      quotaExceeded: tr("Se agotó la cuota diaria de búsquedas (se renueva a medianoche, hora del Pacífico)."),
+      keyInvalid: tr("La clave de API no es válida. Revísala con el botón de la llave."),
+      badRequest: tr("La clave de API no es válida. Revísala con el botón de la llave."),
+      accessNotConfigured: tr("Activa «YouTube Data API v3» en tu proyecto de Google Cloud."),
+      forbidden: tr("La clave no tiene permiso para esta API. Revisa su configuración en Google Cloud.")
     };
-    st.textContent = msgs[e.message] || "No se pudo buscar (¿sin conexión o clave incorrecta?).";
+    st.textContent = msgs[e.message] || tr("No se pudo buscar (¿sin conexión o clave incorrecta?).");
   }
 }
 document.getElementById("nav-youtube").onclick = (e) => { e.stopPropagation(); setYtModal(true); };
@@ -3063,7 +3522,7 @@ document.getElementById("yt-go").onclick = runYtSearch;
 document.getElementById("yt-audio-pref").onclick = () => {
   try { localStorage.setItem("chowfy_yt_audio", ytAudioPref() ? "0" : "1"); } catch (e) {}
   paintYtAudio();
-  document.getElementById("yt-status").textContent = ytAudioPref() ? "Modo solo audio activado. Pulsa Buscar para actualizar." : "Modo solo audio desactivado. Pulsa Buscar para actualizar.";
+  document.getElementById("yt-status").textContent = ytAudioPref() ? tr("Modo solo audio activado. Pulsa Buscar para actualizar.") : tr("Modo solo audio desactivado. Pulsa Buscar para actualizar.");
 };
 document.getElementById("yt-query").addEventListener("keydown", (e) => { if (e.key === "Enter") runYtSearch(); });
 document.getElementById("yt-key-btn").onclick = () => {
@@ -3076,7 +3535,7 @@ document.getElementById("yt-key-save").onclick = () => {
   try { if (v) localStorage.setItem(YT_KEY, v); else localStorage.removeItem(YT_KEY); } catch (e) {}
   ytCache.clear();
   document.getElementById("yt-keybox").style.display = v ? "none" : "flex";
-  document.getElementById("yt-status").textContent = v ? "Clave guardada. Ya puedes buscar." : "Clave eliminada.";
+  document.getElementById("yt-status").textContent = v ? tr("Clave guardada. Ya puedes buscar.") : tr("Clave eliminada.");
   if (v) document.getElementById("yt-query").focus();
 };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ytOpen) setYtModal(false); });
@@ -3129,7 +3588,7 @@ async function saveEdit() {
   try {
     const rec = await dbGet("tracks", t.id);
     if (rec) { rec.name = t.name; rec.artist = t.artist; rec.album = t.album; rec.artwork = t.artwork; await dbPut("tracks", rec); }
-  } catch (e) { alert("No se pudieron guardar los cambios."); }
+  } catch (e) { alert(tr("No se pudieron guardar los cambios.")); }
   lastMediaKey = undefined; adaptiveCache.delete(t.id);
   if (t.id === currentTrackId) adaptiveKey = null;
   if (autoTriedFor === t.id) autoTriedFor = null;
@@ -3145,7 +3604,7 @@ document.getElementById("edit-cover-input").onchange = async (e) => {
   const f = e.target.files[0]; e.target.value = "";
   if (!f) return;
   const art = await coverFromFile(f);
-  if (art) { editArt = art; paintEditCover(); } else showToastAbove(document.getElementById("edit-cover-pick"), "No se pudo leer esa imagen");
+  if (art) { editArt = art; paintEditCover(); } else showToastAbove(document.getElementById("edit-cover-pick"), tr("No se pudo leer esa imagen"));
 };
 document.getElementById("edit-cover-clear").onclick = () => { editArt = null; paintEditCover(); };
 document.addEventListener("keydown", (e) => {
@@ -3181,17 +3640,19 @@ function openCleanPreview() {
   body.innerHTML = "";
   document.getElementById("clean-apply").style.display = cleanChanges.length ? "" : "none";
   if (!cleanChanges.length) {
-    const p = document.createElement("div"); p.textContent = "No hay nada que limpiar: las etiquetas ya están limpias.";
+    const p = document.createElement("div"); p.textContent = tr("No hay nada que limpiar: las etiquetas ya están limpias.");
     body.appendChild(p);
   } else {
     const intro = document.createElement("div"); intro.className = "info-desc";
-    intro.textContent = cleanChanges.length + (cleanChanges.length === 1 ? " canción cambiaría:" : " canciones cambiarían:");
+    intro.textContent = cleanChanges.length === 1
+      ? tr("{n} canción cambiaría:", { n: cleanChanges.length })
+      : tr("{n} canciones cambiarían:", { n: cleanChanges.length });
     body.appendChild(intro);
     cleanChanges.forEach(c => {
       const box = document.createElement("div"); box.className = "clean-item";
-      if (c.after.name !== c.before.name) box.appendChild(cleanRow("Título", c.before.name, c.after.name));
-      if (c.after.artist !== c.before.artist) box.appendChild(cleanRow("Artista", c.before.artist, c.after.artist));
-      if (c.after.album !== c.before.album) box.appendChild(cleanRow("Álbum", c.before.album, c.after.album));
+      if (c.after.name !== c.before.name) box.appendChild(cleanRow(tr("Título"), c.before.name, c.after.name));
+      if (c.after.artist !== c.before.artist) box.appendChild(cleanRow(tr("Artista"), c.before.artist, c.after.artist));
+      if (c.after.album !== c.before.album) box.appendChild(cleanRow(tr("Álbum"), c.before.album, c.after.album));
       body.appendChild(box);
     });
   }
@@ -3217,11 +3678,11 @@ async function applyCleanChanges() {
       const rec = await dbGet("tracks", c.id);
       if (rec) { rec.name = c.after.name; rec.artist = c.after.artist; rec.album = c.after.album; await dbPut("tracks", rec); }
     }
-  } catch (e) { alert("Algunos cambios no se pudieron guardar."); }
+  } catch (e) { alert(tr("Algunos cambios no se pudieron guardar.")); }
   lastMediaKey = undefined;
   cleanChanges.forEach(c => { if (autoTriedFor === c.id) autoTriedFor = null; }); // permite re-buscar letra con el nombre nuevo
   closeCleanPreview(); render();
-  showToastAbove(document.getElementById("clean-tags-open"), n + (n === 1 ? " canción actualizada" : " canciones actualizadas"));
+  showToastAbove(document.getElementById("clean-tags-open"), tr(n === 1 ? "{n} canción actualizada" : "{n} canciones actualizadas", { n }));
 }
 document.getElementById("clean-tags-open").onclick = openCleanPreview;
 document.getElementById("clean-modal").onclick = (e) => e.stopPropagation();
@@ -3237,7 +3698,7 @@ function fmtT(sec) { return durText(sec) || "0:00"; }
 function versionCue(c) {
   if (c.syncedLyrics) {
     const ln = parseLrc(c.syncedLyrics).find(l => l.text);
-    return ln ? "1.ª línea a " + fmtT(ln.t) + ": " + ln.text : "";
+    return ln ? tr("1.ª línea a {t}: {text}", { t: fmtT(ln.t), text: ln.text }) : "";
   }
   const ln = (c.plainLyrics || "").split(/\r?\n/).find(l => l.trim());
   return ln ? "«" + ln.trim() + "»" : "";
@@ -3249,7 +3710,7 @@ function closeVersions() {
 }
 function openVersions() {
   const t = getCurrentTrack();
-  if (!t) { showToastAbove(document.getElementById("btn-lyrics-versions"), "No hay ninguna canción sonando"); return; }
+  if (!t) { showToastAbove(document.getElementById("btn-lyrics-versions"), tr("No hay ninguna canción sonando")); return; }
   verFor = t.id; verOpen = true;
   document.getElementById("ver-query").value = [firstArtist(t.artist), cleanTitle(t.name, t.artist)].filter(Boolean).join(" ");
   document.getElementById("ver-modal").style.display = "flex";
@@ -3260,7 +3721,7 @@ async function loadVersions(custom) {
   const t = tracks.find(x => x.id === verFor);
   if (!t) return;
   const st = document.getElementById("ver-status"), box = document.getElementById("ver-results");
-  box.innerHTML = ""; st.textContent = "Buscando…";
+  box.innerHTML = ""; st.textContent = tr("Buscando…");
   const dur = t.duration || (t.id === currentTrackId ? audio.duration : 0) || 0;
   try {
     const queries = custom ? [custom] : lyricQueries(t).slice(0, 4);
@@ -3273,10 +3734,10 @@ async function loadVersions(custom) {
     const list = [...seen.values()].sort((a, b) =>
       (!!b.syncedLyrics - !!a.syncedLyrics) || (dur ? Math.abs((a.duration || 0) - dur) - Math.abs((b.duration || 0) - dur) : 0)).slice(0, 30);
     if (verFor !== t.id) return;
-    if (!list.length) { st.textContent = "No se encontraron versiones. Prueba con otra búsqueda."; return; }
-    st.textContent = list.length + " versiones" + (dur ? " · tu archivo dura " + fmtT(dur) : "");
+    if (!list.length) { st.textContent = tr("No se encontraron versiones. Prueba con otra búsqueda."); return; }
+    st.textContent = dur ? tr("{n} versiones · tu archivo dura {dur}", { n: list.length, dur: fmtT(dur) }) : tr("{n} versiones", { n: list.length });
     renderVersions(list, t, dur);
-  } catch (e) { st.textContent = "No se pudo consultar LRCLIB (¿sin conexión?)."; }
+  } catch (e) { st.textContent = tr("No se pudo consultar LRCLIB (¿sin conexión?)."); }
 }
 function renderVersions(list, t, dur) {
   const box = document.getElementById("ver-results");
@@ -3284,20 +3745,20 @@ function renderVersions(list, t, dur) {
   list.forEach(c => {
     const row = document.createElement("div"); row.className = "yt-item";
     const info = document.createElement("div"); info.className = "yt-info";
-    const ti = document.createElement("div"); ti.className = "yt-title"; ti.textContent = (c.artistName ? c.artistName + " — " : "") + (c.trackName || c.name || "");
-    const sub = document.createElement("div"); sub.className = "yt-chan"; sub.textContent = c.albumName || "Sin álbum";
+    const ti = document.createElement("div"); ti.className = "yt-title"; ti.setAttribute("data-no-i18n", ""); ti.textContent = (c.artistName ? c.artistName + " — " : "") + (c.trackName || c.name || "");
+    const sub = document.createElement("div"); sub.className = "yt-chan"; sub.setAttribute("data-no-i18n", ""); sub.textContent = c.albumName || tr("Sin álbum");
     const meta = document.createElement("div"); meta.className = "ver-meta";
     const addChip = (txt, good) => { const sp = document.createElement("span"); sp.className = "ver-chip" + (good ? " good" : ""); sp.textContent = txt; meta.appendChild(sp); };
     if (c.duration) {
       const d = Math.round(c.duration - dur);
       addChip(fmtT(c.duration) + (dur ? " (" + (d >= 0 ? "+" : "−") + Math.abs(d) + " s)" : ""), dur && Math.abs(d) <= 2);
     }
-    addChip(c.syncedLyrics ? "Sincronizada" : "Simple", !!c.syncedLyrics);
-    if (lyricsData && lyricsData.trackId === t.id && lyricsData.lrclibId === c.id) addChip("En uso", true);
-    const cue = document.createElement("div"); cue.className = "ver-cue"; cue.textContent = versionCue(c); cue.title = cue.textContent;
+    addChip(c.syncedLyrics ? tr("Sincronizada") : tr("Simple"), !!c.syncedLyrics);
+    if (lyricsData && lyricsData.trackId === t.id && lyricsData.lrclibId === c.id) addChip(tr("En uso"), true);
+    const cue = document.createElement("div"); cue.className = "ver-cue"; cue.setAttribute("data-no-i18n", ""); cue.textContent = versionCue(c); cue.title = cue.textContent;
     info.append(ti, sub, meta, cue);
     const act = document.createElement("div"); act.className = "yt-actions";
-    const pick = document.createElement("button"); pick.className = "lyr-icon"; pick.title = "Usar esta versión";
+    const pick = document.createElement("button"); pick.className = "lyr-icon"; pick.title = tr("Usar esta versión");
     pick.innerHTML = '<i data-lucide="check"></i>';
     pick.onclick = async () => {
       const lines = c.syncedLyrics ? parseLrc(c.syncedLyrics) : parsePlain(c.plainLyrics);
@@ -3331,17 +3792,17 @@ function downloadText(filename, text, mime) {
 async function exportData(kind) {
   const scope = document.getElementById("export-scope").value;
   const groups = scope === "library"
-    ? [{ name: "Biblioteca", list: tracks }]
+    ? [{ name: tr("Biblioteca"), list: tracks }]
     : playlists.map(pl => ({ name: pl.name, list: getTracksForContext({ type: "playlist", id: pl.id }) }));
-  if (!groups.length || groups.every(g => !g.list.length)) { alert("No hay canciones para exportar."); return; }
-  const lyr = new Map((await dbGetAll("lyrics")).map(l => [l.trackId, l.synced ? "sincronizada" : "simple"]));
-  const base = scope === "library" ? "chowfy-biblioteca" : "chowfy-playlists";
+  if (!groups.length || groups.every(g => !g.list.length)) { alert(tr("No hay canciones para exportar.")); return; }
+  const lyr = new Map((await dbGetAll("lyrics")).map(l => [l.trackId, l.synced ? tr("sincronizada") : tr("simple")]));
+  const base = scope === "library" ? (lang === "es" ? "chowfy-biblioteca" : "chowfy-library") : "chowfy-playlists";
   if (kind === "csv") {
-    const rows = [["Lista", "N°", "Título", "Artista", "Álbum", "Duración", "Letra"]];
-    groups.forEach(g => g.list.forEach((t, i) => rows.push([g.name, i + 1, t.name, t.artist || "", t.album || "", durText(t.duration), lyr.get(t.id) || "no"])));
+    const rows = [[tr("Lista"), tr("N°"), tr("Título"), tr("Artista"), tr("Álbum"), tr("Duración"), tr("Letra")]];
+    groups.forEach(g => g.list.forEach((t, i) => rows.push([g.name, i + 1, t.name, t.artist || "", t.album || "", durText(t.duration), lyr.get(t.id) || tr("no")])));
     downloadText(base + ".csv", rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
   } else {
-    const out = groups.map(g => "== " + g.name + " (" + g.list.length + " canciones) ==\n" + g.list.map((t, i) =>
+    const out = groups.map(g => "== " + g.name + " (" + tr(g.list.length === 1 ? "{n} canción" : "{n} canciones", { n: g.list.length }) + ") ==\n" + g.list.map((t, i) =>
       (i + 1) + ". " + (t.artist ? t.artist + " - " : "") + t.name + (t.album ? " [" + t.album + "]" : "") + (t.duration ? " (" + durText(t.duration) + ")" : "")).join("\n"));
     downloadText(base + ".txt", out.join("\n\n"), "text/plain");
   }
@@ -3467,22 +3928,22 @@ function statsDuration(sec) {
 function statsAgo(ms) {
   if (!ms) return "—";
   const diff = Date.now() - ms;
-  if (diff < 60e3) return "ahora";
-  if (diff < 3600e3) return "hace " + Math.floor(diff / 60e3) + " min";
-  if (diff < 86400e3) return "hace " + Math.floor(diff / 3600e3) + " h";
-  if (diff < 2 * 86400e3) return "ayer";
-  if (diff < 7 * 86400e3) return "hace " + Math.floor(diff / 86400e3) + " días";
-  try { return new Date(ms).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" }); }
+  if (diff < 60e3) return tr("ahora");
+  if (diff < 3600e3) return tr("hace {n} min", { n: Math.floor(diff / 60e3) });
+  if (diff < 86400e3) return tr("hace {n} h", { n: Math.floor(diff / 3600e3) });
+  if (diff < 2 * 86400e3) return tr("ayer");
+  if (diff < 7 * 86400e3) return tr("hace {n} días", { n: Math.floor(diff / 86400e3) });
+  try { return new Date(ms).toLocaleDateString(lang === "es" ? "es" : "en", { day: "numeric", month: "short", year: "numeric" }); }
   catch (e) { return new Date(ms).toLocaleDateString(); }
 }
 function refreshStatsHint() {
   const el = document.getElementById("stats-hint");
   if (!el) return;
   const s = statsSummary();
-  if (!s.plays && !s.seconds) { el.textContent = "Aún no hay reproducciones registradas."; return; }
-  el.textContent = s.heard + (s.heard === 1 ? " canción escuchada" : " canciones escuchadas") +
-    " · " + s.plays + (s.plays === 1 ? " reproducción" : " reproducciones") +
-    " · " + statsDuration(s.seconds);
+  if (!s.plays && !s.seconds) { el.textContent = tr("Aún no hay reproducciones registradas."); return; }
+  const heard = s.heard === 1 ? tr("{n} canción escuchada", { n: s.heard }) : tr("{n} canciones escuchadas", { n: s.heard });
+  const plays = s.plays === 1 ? tr("{n} reproducción", { n: s.plays }) : tr("{n} reproducciones", { n: s.plays });
+  el.textContent = heard + " · " + plays + " · " + statsDuration(s.seconds);
 }
 
 function statsCard(k, v, sub) {
@@ -3518,22 +3979,25 @@ function renderStats() {
   const sum = statsSummary();
   if (!sum.rows.length) {
     const p = document.createElement("div"); p.className = "stats-empty";
-    p.textContent = "Todavía no hay datos. Reproduce una canción y, cuando suene al menos la mitad (o 30 s), quedará registrada aquí.";
+    p.textContent = tr("Todavía no hay datos. Reproduce una canción y, cuando suene al menos la mitad (o 30 s), quedará registrada aquí.");
     body.appendChild(p);
     return;
   }
   if (statsView === "summary") {
     const cards = document.createElement("div"); cards.className = "stats-cards";
-    cards.appendChild(statsCard("Tiempo escuchado", statsDuration(sum.seconds), sum.plays ? "en " + sum.plays + (sum.plays === 1 ? " reproducción" : " reproducciones") : ""));
-    cards.appendChild(statsCard("Reproducciones", String(sum.plays), "de " + tracks.length + (tracks.length === 1 ? " canción" : " canciones")));
-    cards.appendChild(statsCard("Canciones escuchadas", sum.heard + " / " + tracks.length, sum.skips ? (sum.skips === 1 ? "1 saltada" : sum.skips + " saltadas") : ""));
+    const playsSub = sum.plays ? (sum.plays === 1 ? tr("en {n} reproducción", { n: sum.plays }) : tr("en {n} reproducciones", { n: sum.plays })) : "";
+    const tracksSub = tracks.length === 1 ? tr("de {n} canción", { n: tracks.length }) : tr("de {n} canciones", { n: tracks.length });
+    const skipsSub = sum.skips ? (sum.skips === 1 ? tr("{n} saltada", { n: sum.skips }) : tr("{n} saltadas", { n: sum.skips })) : "";
+    cards.appendChild(statsCard(tr("Tiempo escuchado"), statsDuration(sum.seconds), playsSub));
+    cards.appendChild(statsCard(tr("Reproducciones"), String(sum.plays), tracksSub));
+    cards.appendChild(statsCard(tr("Canciones escuchadas"), sum.heard + " / " + tracks.length, skipsSub));
     const rate = sum.plays ? Math.round((sum.completed / sum.plays) * 100) : 0;
-    cards.appendChild(statsCard("Se escuchan hasta el final", rate + " %", sum.completed + " completas"));
+    cards.appendChild(statsCard(tr("Se escuchan hasta el final"), rate + " %", tr("{n} completas", { n: sum.completed })));
     body.appendChild(cards);
 
     const top = sum.rows.filter(r => r.stats.plays > 0).slice(0, 5);
     if (top.length) {
-      const [sub, list] = statsList("Más escuchadas", top.map(r => ({
+      const [sub, list] = statsList(tr("Más escuchadas"), top.map(r => ({
         title: r.track.name,
         sub: [r.track.artist, r.track.album].filter(Boolean).join(" · "),
         value: r.stats.plays + " × · " + statsDuration(r.stats.seconds),
@@ -3541,7 +4005,7 @@ function renderStats() {
       body.append(sub, list);
     }
     if (sum.artists.length) {
-      const [sub2, list2] = statsList("Artistas por tiempo", sum.artists.slice(0, 5).map(([name, sec]) => ({
+      const [sub2, list2] = statsList(tr("Artistas por tiempo"), sum.artists.slice(0, 5).map(([name, sec]) => ({
         title: name, sub: "", value: statsDuration(sec),
       })));
       body.append(sub2, list2);
@@ -3549,7 +4013,7 @@ function renderStats() {
   } else {
     const table = document.createElement("div"); table.className = "stats-table";
     const head = document.createElement("div"); head.className = "stats-row head";
-    ["Canción", "Repr.", "Tiempo", "Última"].forEach((h, i) => {
+    [tr("Canción"), tr("Repr."), tr("Tiempo"), tr("Última")].forEach((h, i) => {
       const c = document.createElement("div"); c.textContent = h; if (i) c.className = "num"; head.appendChild(c);
     });
     table.appendChild(head);
@@ -3598,7 +4062,7 @@ function closeStats() {
 }
 function statsExportCsv() {
   const sum = statsSummary();
-  const rows = [["Título", "Artista", "Álbum", "Reproducciones", "Completadas", "Saltos", "Segundos", "Tiempo", "Primera", "Última"]];
+  const rows = [[tr("Título"), tr("Artista"), tr("Álbum"), tr("Reproducciones"), tr("Completadas"), tr("Saltos"), tr("Segundos"), tr("Tiempo"), tr("Primera"), tr("Última")]];
   sum.rows.forEach(r => rows.push([
     r.track.name, r.track.artist || "", r.track.album || "",
     r.stats.plays, r.stats.completed, r.stats.skips,
@@ -3606,33 +4070,33 @@ function statsExportCsv() {
     r.stats.firstPlayed ? new Date(r.stats.firstPlayed).toISOString() : "",
     r.stats.lastPlayed ? new Date(r.stats.lastPlayed).toISOString() : "",
   ]));
-  downloadText("chowfy-estadisticas.csv", rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
+  downloadText(lang === "es" ? "chowfy-estadisticas.csv" : "chowfy-stats.csv", rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
 }
 function statsExportTxt() {
   const sum = statsSummary();
   const lines = [];
-  lines.push("Chowfy · informe de reproducción");
-  lines.push("Generado: " + new Date().toLocaleString("es"));
+  lines.push(tr("Chowfy · informe de reproducción"));
+  lines.push(tr("Generado: {date}", { date: new Date().toLocaleString(lang === "es" ? "es" : "en") }));
   lines.push("");
-  lines.push("Tiempo escuchado: " + statsDuration(sum.seconds));
-  lines.push("Reproducciones: " + sum.plays);
-  lines.push("Canciones escuchadas: " + sum.heard + " de " + tracks.length);
-  lines.push("Completadas: " + sum.completed + " · Saltadas: " + sum.skips);
+  lines.push(tr("Tiempo escuchado: {time}", { time: statsDuration(sum.seconds) }));
+  lines.push(tr("Reproducciones: {n}", { n: sum.plays }));
+  lines.push(tr("Canciones escuchadas: {n} de {total}", { n: sum.heard, total: tracks.length }));
+  lines.push(tr("Completadas: {c} · Saltadas: {s}", { c: sum.completed, s: sum.skips }));
   lines.push("");
   if (sum.rows.length) {
-    lines.push("== Por canción ==");
+    lines.push(tr("== Por canción =="));
     sum.rows.forEach((r, i) => {
       lines.push((i + 1) + ". " + (r.track.artist ? r.track.artist + " - " : "") + r.track.name +
-        " · " + r.stats.plays + " repr. · " + statsDuration(r.stats.seconds) +
-        " · última: " + statsAgo(r.stats.lastPlayed));
+        " · " + r.stats.plays + " " + tr("Repr.") + " · " + statsDuration(r.stats.seconds) +
+        tr(" · última: {ago}", { ago: statsAgo(r.stats.lastPlayed) }));
     });
   } else {
-    lines.push("Sin reproducciones registradas todavía.");
+    lines.push(tr("Sin reproducciones registradas todavía."));
   }
-  downloadText("chowfy-estadisticas.txt", lines.join("\n"), "text/plain");
+  downloadText(lang === "es" ? "chowfy-estadisticas.txt" : "chowfy-stats.txt", lines.join("\n"), "text/plain");
 }
 async function statsReset() {
-  if (!confirm("¿Reiniciar las estadísticas de reproducción? No afecta a tus canciones, letras ni playlists.")) return;
+  if (!confirm(tr("¿Reiniciar las estadísticas de reproducción? No afecta a tus canciones, letras ni playlists."))) return;
   statsSession = null;
   let rows = [];
   try { rows = await dbGetAll("stats"); } catch (e) {}
@@ -3641,7 +4105,7 @@ async function statsReset() {
   if (currentTrackId) statsSession = { id: currentTrackId, lastT: audio.currentTime || 0, seconds: 0, saved: 0, counted: false };
   refreshStatsHint();
   renderStats();
-  showToastAbove(document.getElementById("stats-open"), "Estadísticas reiniciadas");
+  showToastAbove(document.getElementById("stats-open"), tr("Estadísticas reiniciadas"));
 }
 document.getElementById("stats-open").onclick = () => openStats();
 document.getElementById("stats-modal").onclick = (e) => e.stopPropagation();
@@ -3670,7 +4134,7 @@ document.getElementById("reset-color-btn").onclick = () => {
   savePrefs();
 };
 document.getElementById("clear-library-btn").onclick = async () => {
-  if (!confirm("¿Vaciar toda tu biblioteca? Esto quita todas las canciones importadas de Chowfy (tus archivos originales en tu equipo no se borran).")) return;
+  if (!confirm(tr("¿Vaciar toda tu biblioteca? Esto quita todas las canciones importadas de Chowfy (tus archivos originales en tu equipo no se borran)."))) return;
   const allTracks = await dbGetAll("tracks");
   for (const t of allTracks) { await dbDelete("tracks", t.id); await dbDelete("lyrics", t.id); }
   statsSession = null;
@@ -3845,11 +4309,11 @@ async function mbProvider(name) {
   }
   if (!pick) return null;
   const facts = [];
-  if (pick.type) facts.push(["Tipo", pick.type === "Group" ? "Grupo" : pick.type === "Person" ? "Solista" : pick.type]);
-  if (pick.area && pick.area.name) facts.push(["Origen", pick.area.name]);
-  else if (pick.country) facts.push(["Origen", pick.country]);
+  if (pick.type) facts.push([tr("Tipo"), pick.type === "Group" ? tr("Grupo") : pick.type === "Person" ? tr("Solista") : pick.type]);
+  if (pick.area && pick.area.name) facts.push([tr("Origen"), pick.area.name]);
+  else if (pick.country) facts.push([tr("Origen"), pick.country]);
   const ls = pick["life-span"];
-  if (ls && ls.begin) facts.push(["Activo", ls.begin + " – " + (ls.ended ? (ls.end || "?") : "actualidad")]);
+  if (ls && ls.begin) facts.push([tr("Activo"), ls.begin + " – " + (ls.ended ? (ls.end || "?") : tr("actualidad"))]);
   return {
     title: pick.name, description: pick.disambiguation || "", extract: "", thumb: "",
     url: "https://musicbrainz.org/artist/" + pick.id, id: pick.id, lang: "", source: "MusicBrainz", facts
@@ -3912,8 +4376,8 @@ async function itunesProvider(name, kind, artist) {
     || (na && d.results.find(x => infoNorm(x.artistName || "") === na))
     || d.results[0];
   const facts = [];
-  if (r.primaryGenreName) facts.push(["Género", r.primaryGenreName]);
-  if (kind === "album" && r.artistName) facts.push(["Artista", r.artistName]);
+  if (r.primaryGenreName) facts.push([tr("Género"), r.primaryGenreName]);
+  if (kind === "album" && r.artistName) facts.push([tr("Artista"), r.artistName]);
   return {
     title: kind === "artist" ? r.artistName : r.collectionName, description: "", extract: "",
     thumb: r.artworkUrl100 ? r.artworkUrl100.replace("100x100", "320x320") : "",
@@ -3958,7 +4422,7 @@ function fillSubLine(el, track) {
   parts.forEach(([kind, text], i) => {
     if (i) el.appendChild(document.createTextNode(" • "));
     const sp = document.createElement("span");
-    sp.className = "sub-link"; sp.textContent = text; sp.title = "Ver información";
+    sp.className = "sub-link"; sp.setAttribute("data-no-i18n", ""); sp.textContent = text; sp.title = tr("Ver información");
     // Accesible por teclado, igual que un botón.
     sp.setAttribute("role", "button");
     sp.tabIndex = 0;
@@ -4002,10 +4466,10 @@ async function renderInfo() {
   tabA.style.display = artist ? "" : "none"; tabB.style.display = album ? "" : "none";
   tabA.classList.toggle("active", infoKind === "artist"); tabB.classList.toggle("active", infoKind === "album");
   const name = infoKind === "artist" ? artist : album;
-  document.getElementById("info-heading").textContent = name || "Información";
+  document.getElementById("info-heading").textContent = name || tr("Información");
   const body = document.getElementById("info-body");
   body.innerHTML = "";
-  const wait = document.createElement("div"); wait.className = "info-desc"; wait.textContent = "Buscando información…";
+  const wait = document.createElement("div"); wait.className = "info-desc"; wait.textContent = tr("Buscando información…");
   body.appendChild(wait);
   const token = ++infoToken;
   // Si la red falla, el modal NUNCA debe quedarse colgado en "Buscando…".
@@ -4016,11 +4480,11 @@ async function renderInfo() {
   body.innerHTML = "";
   if (lookupFailed) {
     const msg = document.createElement("div");
-    msg.textContent = "No se pudo consultar la información. Revisa tu conexión e inténtalo otra vez.";
+    msg.textContent = tr("No se pudo consultar la información. Revisa tu conexión e inténtalo otra vez.");
     body.appendChild(msg);
     const links = document.createElement("div"); links.className = "info-links";
     const retry = document.createElement("button");
-    retry.className = "lyr-btn"; retry.textContent = "Reintentar";
+    retry.className = "lyr-btn"; retry.textContent = tr("Reintentar");
     retry.onclick = () => renderInfo();
     links.appendChild(retry);
     body.appendChild(links);
@@ -4046,21 +4510,21 @@ async function renderInfo() {
     }
     if (res.extract) { const ex = document.createElement("div"); ex.textContent = res.extract; body.appendChild(ex); }
     const links = document.createElement("div"); links.className = "info-links";
-    if (res.url) links.appendChild(infoLink(res.url, res.source === "Wikipedia" ? "Leer en Wikipedia" : "Ver en " + res.source));
-    if (res.mbUrl) links.appendChild(infoLink(res.mbUrl, "Ver en MusicBrainz"));
+    if (res.url) links.appendChild(infoLink(res.url, res.source === "Wikipedia" ? tr("Leer en Wikipedia") : tr("Ver en {source}", { source: res.source })));
+    if (res.mbUrl) links.appendChild(infoLink(res.mbUrl, tr("Ver en MusicBrainz")));
     const src = document.createElement("div"); src.className = "info-desc";
     src.textContent = res.source === "Wikipedia"
-      ? "Fuente: Wikipedia (" + res.lang + "), texto bajo licencia CC BY-SA."
-      : "Datos: " + res.source + (res.source === "MusicBrainz" ? " (CC0)" : "");
+      ? tr("Fuente: Wikipedia ({lang}), texto bajo licencia CC BY-SA.", { lang: res.lang })
+      : (res.source === "MusicBrainz" ? tr("Datos: {source} (CC0)", { source: res.source }) : tr("Datos: {source}", { source: res.source }));
     body.appendChild(links); body.appendChild(src);
   } else {
     const msg = document.createElement("div");
-    msg.textContent = navigator.onLine === false ? "Sin conexión a internet." : "No encontré información para «" + name + "».";
+    msg.textContent = navigator.onLine === false ? tr("Sin conexión a internet.") : tr("No encontré información para «{name}».", { name });
     body.appendChild(msg);
     const q = encodeURIComponent(name + (infoKind === "album" && artist ? " " + artist : ""));
     const links = document.createElement("div"); links.className = "info-links";
-    links.appendChild(infoLink("https://es.wikipedia.org/w/index.php?search=" + q, "Buscar en Wikipedia"));
-    links.appendChild(infoLink("https://www.google.com/search?q=" + q, "Buscar en la web"));
+    links.appendChild(infoLink("https://es.wikipedia.org/w/index.php?search=" + q, tr("Buscar en Wikipedia")));
+    links.appendChild(infoLink("https://www.google.com/search?q=" + q, tr("Buscar en la web")));
     body.appendChild(links);
   }
 }
@@ -4073,6 +4537,8 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && infoOpen
 // ---------- Init ----------
 async function initApp() {
   loadPrefs();
+  applyLanguage();
+  startI18nObserver();
   document.getElementById("opt-remember-view").checked = rememberView;
   applyNewPrefsUI();
   loadEqState();
