@@ -4,7 +4,7 @@
 </p>
 
 ## 🎵 Local web music player
-> **Note:** This page was created using AI and may be unstable or contain errors, as it is not intended for public use. If you happen to stumble upon this repository, I’d just like to thank you for finding it. By the way, the entire website was originally created in Spanish.
+> **Note:** This page was created using AI and may be unstable or contain errors. If you happen to stumble upon this repository, I’d just like to thank you for finding it.
 
 ---
 
@@ -34,10 +34,13 @@
 * **Session Persistence:** Option to automatically remember the last opened playlist when you return.
 
 ### 📊 Playback Times and Statistics
-- **Total Playback Time:** Shows the total time you've spent listening to music on the page.
-- **Statistics by Song:** Tracks and displays the cumulative playback time for each song in your library.
+* **Total Playback Time:** Shows the total time you've spent listening to music on the page.
+* **Statistics by Song:** Tracks and displays the cumulative playback time for each song in your library.
 
-v1.6
+### 🌐 Languages 
+* **English** and **Spanish** are currently available.
+  
+v1.7
 <p align="center">
   <a href="https://thenar95.github.io/chowfy/" target="_blank" rel="noopener noreferrer">
     <strong>Chowfy</strong>
