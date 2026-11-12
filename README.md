@@ -40,7 +40,7 @@
 ### 🌐 Languages 
 * **English** and **Spanish** are currently available.
   
-v1.7
+v1.7.1
 <p align="center">
   <a href="https://thenar95.github.io/chowfy/" target="_blank" rel="noopener noreferrer">
     <strong>Chowfy</strong>
