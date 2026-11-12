@@ -1203,6 +1203,7 @@ const EN = {
   "La cola está vacía": "The queue is empty",
   "Eliminar etiqueta": "Delete preset",
   "Reproducir": "Play",
+  "Reproducir siguiente": "Play next",
   "Añadir a la cola de reproducción": "Add to playback queue",
   "Añadir a una playlist": "Add to a playlist",
   "Estadísticas de reproducción": "Playback statistics",
@@ -2019,6 +2020,14 @@ function addToQueue(id) {
   queue.push(id);
   render();
 }
+function playNextInQueue(id) {
+  if (!currentTrackId) { playFromCurrentView(id); return; }
+  queue = queue.filter(x => x !== id);
+  manualQueueAdditions = manualQueueAdditions.filter(x => x !== id);
+  queue.unshift(id);
+  manualQueueAdditions.unshift(id);
+  render();
+}
 function clearQueue() {
   queue = [];
   manualQueueAdditions = [];
@@ -2391,6 +2400,11 @@ function renderTrackMenu() {
     playBtn.innerHTML = '<i data-lucide="play"></i> ' + tr("Reproducir");
     playBtn.onclick = () => { closeTrackMenu(); playFromCurrentView(track.id); };
     menu.appendChild(playBtn);
+
+    const nextBtn = document.createElement("button");
+    nextBtn.innerHTML = '<i data-lucide="list-start"></i> ' + tr("Reproducir siguiente");
+    nextBtn.onclick = () => { closeTrackMenu(); playNextInQueue(track.id); };
+    menu.appendChild(nextBtn);
 
     const queueBtn = document.createElement("button");
     queueBtn.innerHTML = '<i data-lucide="list-end"></i> ' + tr("Añadir a la cola de reproducción");
